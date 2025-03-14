@@ -355,7 +355,6 @@ def find_all_trains(Data):
         html = urlopen(url).read().decode("utf-8")
         ref_index = 0
         go = True
-        st.write('Train')
         while go:
         #print(html)
             find_text = "/service/gb-nr"
@@ -375,11 +374,9 @@ def find_all_trains(Data):
             else:
                 go = False
     
-    st.write("Finding all trains on this route on the selected day (may take some time)...")
     all_trains = []
     traincount = []   #number of stations in the range that the train calls at
     threads = []
-    
     #logging.basicConfig(format=format, level=logging.INFO,datefmt="%H:%M:%S")
     for k in range(len(Data.linepts)):
         x = threading.Thread(target=trains_at_point, args=(Data.linepts[k], all_trains, traincount), daemon = False)
@@ -387,7 +384,6 @@ def find_all_trains(Data):
         x.start()
     for j, x in enumerate(threads):
         x.join()
- 
-    st.session_state.all_trains = all_trains
-    return traincount
+
+    return all_trains
 
