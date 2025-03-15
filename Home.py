@@ -104,7 +104,7 @@ def run():
         """
         Making line plots of train positions, using live data from RealTimeTrains.
         Choose what to plot either by specifying a train on a certain date, or two stations which have trains running between them.
-        Then time and things should follow relatively easily.
+        'Live' features to follow when I can figure out a way of speeding certain things up.
         """
     )
 
@@ -159,11 +159,15 @@ def run():
         init_date = datetime.date.today()
 
         with cols[0]:
-            start_name = st.selectbox("Start station", Data.full_names, index = 1690, on_change = reset_route, key = 24556567)
-            start_code = start_name[-4:-1]
+            start_name = st.selectbox("Start station", Data.full_names, index = None,  on_change = reset_route, key = 24556567)
         with cols[1]:
-            end_name = st.selectbox("End station", Data.full_names, index = 2620, on_change = reset_route, key = 4568934)
-            end_code = end_name[-4:-1]
+            end_name = st.selectbox("End station", Data.full_names, index = None, on_change = reset_route, key = 4568934)
+            
+        if start_name is None or end_name is None:
+            st.stop()
+            
+        start_code = start_name[-4:-1]
+        end_code = end_name[-4:-1]
             
         if st.button("Find route between these stations", on_click = reset_route):
             rtt_code, linepts, linedists = find_trains_pts(Data, init_date, start_code, end_code)
@@ -272,7 +276,7 @@ def run():
                 Paras.aspect = st.slider("Aspect ratio", min_value = 0.25, max_value = 2., value = 1.0,step = (0.05), format = "%.2f")
     
                 init_minval = max(t0, st.session_state.timeref - datetime.timedelta(hours = 2))
-                init_maxval = max(t1, st.session_state.timeref + datetime.timedelta(hours = 2))
+                init_maxval = min(t1, st.session_state.timeref + datetime.timedelta(hours = 2))
                 trange_min, trange_max = st.slider("Time range:", min_value = t0, max_value = t1, value = (init_minval, init_maxval), format = "HH:mm")
 
                 Paras.xmin = trange_min.hour*60 + trange_min.minute; Paras.xmax = trange_max.hour*60 + trange_max.minute

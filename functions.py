@@ -167,7 +167,7 @@ def train_info(Data, train_code):
     started = False
 
     on_line = False  #flag to tell if a train is on the line. For splitting up the journeys when trains rejoin the route. Being a bit st =id...
-    while go:
+    while go:   #For scheduled times
         find_text = "/search/detailed"
         title_index = html[ref_index:].find("/search/detailed/gb-nr") + ref_index
         if title_index - ref_index >= 0:
@@ -193,7 +193,6 @@ def train_info(Data, train_code):
                     if html[dep_index+9:dep_index+14] == "&frac":
                         dep = dep + whichfrac(html[dep_index+14:dep_index+16])
                     
-                
                 arr_index = html[start_index:end_search_index].find('arr">') + start_index
                 arr = html[arr_index+5:arr_index+9]
                 if arr == '</di':
@@ -240,7 +239,7 @@ def train_info(Data, train_code):
     off_line_time = 0
     
     on_line = False  #flag to tell if a train is on the line. For splitting up the journeys when trains rejoin the route. Being a bit stupid...
-    while go:
+    while go:   #For actual times
         find_text = "/search/detailed"
         add = True
         title_index = html[ref_index:].find("/search/detailed/gb-nr") + ref_index
@@ -302,13 +301,13 @@ def train_info(Data, train_code):
                 if not on_line:
                     calls_rt.append([])
                      
-                if len(calls_rt[-1]) > 0:
+                if len(calls_rt[-1]) > 0:   #Deal with logical impossibilities. Sometimes an arrival is logged before a previous departure -- just deal with it.
                     if int(calls_rt[-1][-1][2]) > dep_act and dep_act >= 0:
                         add = False
                     if int(calls_rt[-1][-1][1]) > arr_act and arr_act >= 0:
                         add = False
-                    if int(calls_rt[-1][-1][2]) > arr_act and arr_act >= 0:
-                        add = False
+                    #if int(calls_rt[-1][-1][2]) > arr_act and arr_act >= 0:  #This is dubious -- but deal with it later
+                    #    add = False
 
                 if arr_act < 0 and dep_act < 0:
                     off_line_time = off_line_time + 1
