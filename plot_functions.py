@@ -138,7 +138,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
         else:
             xis = np.linspace(xls[0], xls[-1], res)
 
-        if len(yls) == 2 and yls[1] == yls[0]:
+        if len(yls) == 2 and yls[1] == yls[0]:   #Train is stationary
             if dot:
                 xls[-1] = dot_time
             plt.plot(xls,yls, c= colour, linewidth = lw, alpha = alpha, zorder = order)
@@ -148,9 +148,6 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
             try:
                 yinterp = CubicSpline(xls, yls, bc_type=((bc1 + 1, 0.0), (bc2 + 1, 0.0)))
             except:
-                print('Interpolation failed, stops --')
-                print(xls)
-                print(yls)
                 return
             
             yis = yinterp(xis)                
@@ -304,10 +301,16 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
 
 
 
-def plot_trains(xmin = 0, xmax = 24, counter = 0, dot_time = 1e6, operators = True, plot_up = True, plot_down = True, plot_rt = True, plot_wtt = True):
+def plot_trains(Paras, counter = -1):
     
-    dot_time = dot_time#xmin + 0.75*(xmax - xmin)
-    fig = plt.figure(figsize = ((xmax-xmin)/30,10))
+    dot_time = Paras.dot_time#xmin + 0.75*(xmax - xmin)
+    #This is tricky...
+    if len(st.session_state.linedists) > 0:
+        yrange = np.max(st.session_state.linedists) - np.min(st.session_state.linedists)
+    else:
+        yrange = len(st.session_state.linepts)   #Times some undetermined factor
+        
+    fig = plt.figure(figsize = ((Paras.xmax-Paras.xmin)/12.5*Paras.aspect,yrange/10))
     #Establish y axis distances/labels. If no distance data just use integers. 
     #Shame that distance data isn't universal but meh. Could perhaps bodge later?
     yticks = []
@@ -353,7 +356,7 @@ def plot_trains(xmin = 0, xmax = 24, counter = 0, dot_time = 1e6, operators = Tr
             end = calls_test[-1][2]%100 + 60*( calls_test[-1][2]//100)
         return start,end
         
-    if plot_wtt:
+    if Paras.plot_wtt:
         for k in range(len(st.session_state.allcalls)):
             
             
@@ -364,10 +367,11 @@ def plot_trains(xmin = 0, xmax = 24, counter = 0, dot_time = 1e6, operators = Tr
                 
             start, end = startend(st.session_state.allcalls[k])
             
-            if (up and plot_up) or (not up and plot_down):
-                if xmin < end and xmax > start:
-                    plot_train(st.session_state.allcalls[k], st.session_state.allops[k], st.session_state.allheads[k], 1e6, fig, rt_flag = not(plot_rt))
-    if plot_rt:
+            if (up and Paras.plot_up) or (not up and Paras.plot_down):
+                if Paras.xmin < end and Paras.xmax > start:
+                    if st.session_state.allops[k] in Paras.plot_operators and int(st.session_state.allheads[k][:1]) in Paras.plot_heads:
+                        plot_train(st.session_state.allcalls[k], st.session_state.allops[k], st.session_state.allheads[k], 1e6, fig, rt_flag = not(Paras.plot_rt))
+    if Paras.plot_rt:
         for k in range(len(st.session_state.allcalls_rt)):
             
             if st.session_state.linepts.index(st.session_state.allcalls_rt[k][-1][0]) > st.session_state.linepts.index(st.session_state.allcalls_rt[k][0][0]):
@@ -376,17 +380,20 @@ def plot_trains(xmin = 0, xmax = 24, counter = 0, dot_time = 1e6, operators = Tr
                 up = True
     
             start, end = startend(st.session_state.allcalls_rt[k])
-            if (up and plot_up) or (not up and plot_down):
+            if (up and Paras.plot_up) or (not up and Paras.plot_down):
             #if allops_rt[k] == 'ZZ' and allcalls_rt[k][0][2] > 300 and allcalls_rt[k][0][2] < 330:
-                if xmin < end and xmax > start:
-                    plot_train(st.session_state.allcalls_rt[k], st.session_state.allops_rt[k], st.session_state.allheads_rt[k], dot_time, fig, rt_flag = True)
+                if Paras.xmin < end and Paras.xmax > start:
+                    if (st.session_state.allops_rt[k] in Paras.plot_operators) and (int(st.session_state.allheads_rt[k][:1]) in Paras.plot_heads):
+
+                        plot_train(st.session_state.allcalls_rt[k], st.session_state.allops_rt[k], st.session_state.allheads_rt[k], dot_time, fig, rt_flag = True)
             #plot_train(linepts, linedists, allcalls_rt[k], allops_rt[k], allheads_rt[k], dot_time, fig, rt_flag = True)
 
         
-    plt.gca().invert_yaxis()
-    plt.xlim(xmin,xmax)
+    plt.xlim(Paras.xmin,Paras.xmax)
     plt.ylim(yticks[-1] + 5.0, yticks[0] - 5.0)
-    
+    if not Paras.reverse:
+        plt.gca().invert_yaxis()
+
     st.pyplot(fig)
     plt.clf()
     plt.close()

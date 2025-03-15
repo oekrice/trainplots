@@ -11,9 +11,50 @@ def station_name(Data, station_code):
     #st.write(Data.stations)
     ind = Data.stations.index[Data.stations["crsCode"] == station_code][0]
     return Data.stations["stationName"][ind]
-    
 
-def find_line_info(Data, url, init = False):
+def station_code(Data, station_name):
+    #Looks up the station code and returns the proper name
+    #st.write(Data.stations)
+    ind = Data.stations.index[Data.stations["stationName"] == station_name][0]
+    return Data.stations["crsCode"][ind]
+
+def find_trains_pts(Data, init_date, start_code, end_code):
+    #Finds trains between two points (as codes)
+    #Check first direction first
+    search_url1 = "https://www.realtimetrains.co.uk/search/detailed/gb-nr:" + str(start_code) + '/to/gb-nr:' + str(end_code) + '/' + str(init_date) + '/0000-2359?stp=WVS&show=all&order=wtt'
+    html = urlopen(search_url1).read().decode("utf-8")
+    ref_index = 0
+    go = True
+    all_trains = []
+    while go:
+    #print(html)
+        find_text = "/service/gb-nr"
+        title_index = html[ref_index:].find(find_text) + ref_index
+        if title_index - ref_index >= 0:
+            start_index = title_index + len(find_text)
+            end_index = html[start_index:].find("class") - 2 + start_index
+            ref_index = end_index + 1
+            train_index = html[start_index+1:start_index+7]
+            all_trains.append(train_index)
+        else:
+            go = False
+    #Check these trains for distance data
+    found1 = False; found2 = False
+    testpts = []; testdists = []; goodcode = None
+    for code in all_trains:
+        if not found1 or not found2:
+            test_url = "https://www.realtimetrains.co.uk/service/gb-nr:" + code + '/' + str(init_date) + '/detailed#allox_id=0'
+            testpts, testdists = find_line_info(Data, test_url, init = False)
+            if len(testpts) > 0:
+                found1 = True
+            if len(testdists) > 0:
+                found2 = True
+            goodcode = code
+            
+    
+    return goodcode, testpts, testdists
+
+def find_line_info(Data, url, init = False, unspecified = False):
     try:
         page = urlopen(url)
     except:
@@ -21,7 +62,7 @@ def find_line_info(Data, url, init = False):
             st.error("Train not found with url %s" % url)
             st.stop()
         else:
-            pass
+            return [], []
         
     html_bytes = page.read()    
     html = html_bytes.decode("utf-8")
@@ -72,7 +113,9 @@ def find_line_info(Data, url, init = False):
     for i in range(len(miles)):
         linedists.append(miles[i] + chains[i]/80)
     
-    st.write("Train found travelling between", station_name(Data, linepts[0]), "and", station_name(Data, linepts[-1]), ". Can trim this if you like to speed things up:")
+    if init and not unspecified:
+        st.write("Train found travelling between", station_name(Data, linepts[0]), "and", station_name(Data, linepts[-1]), ". Can trim this if you like to speed things up:")
+    
     return linepts, linedists
 
 def train_info(Data, train_code):
@@ -324,15 +367,20 @@ def find_train_data(Data):
     threads = []
     Data.allcalls = []; Data.allops = []
     Data.allcalls_rt = []; Data.allops_rt = []; Data.allheads = []; Data.allheads_rt = []
-    
-    for k, train in enumerate(st.session_state.all_trains[:]):
-        x = threading.Thread(target=add_train_info, args=(Data, train), daemon = False)
-        threads.append(x)
-        x.start()
-        
-    for j, x in enumerate(threads):
-        x.join()
- 
+    nlumps = 10
+    progress_bar = st.progress(0, text = "Finding all trains")
+    for lump in range(nlumps):
+        start_ind = int(lump*len(st.session_state.all_trains[:])/nlumps); end_ind = min(int((lump+1)*len(st.session_state.all_trains[:])/nlumps), len(st.session_state.all_trains[:]))
+        for k, train in enumerate(st.session_state.all_trains[start_ind:end_ind]):
+            x = threading.Thread(target=add_train_info, args=(Data, train), daemon = False)
+            threads.append(x)
+            x.start()
+            
+        for j, x in enumerate(threads):
+            x.join()
+            
+        progress_bar.progress((lump+1)/nlumps, text = "%d%% complete" % (100*(lump+1)/nlumps))
+    progress_bar.progress(1.0, text = "All trains found")
     st.session_state.allcalls = Data.allcalls
     st.session_state.allops = Data.allops
     st.session_state.allcalls_rt = Data.allcalls_rt
@@ -341,7 +389,7 @@ def find_train_data(Data):
     st.session_state.allheads_rt = Data.allheads_rt
     
     return
-
+    
 def find_all_trains(Data):
     '''
     Finds all the train codes that pass through linepts on a given date.
