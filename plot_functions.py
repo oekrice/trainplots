@@ -308,7 +308,7 @@ def plot_trains(Paras, counter = -1):
     if len(st.session_state.linedists) > 0:
         yrange = np.max(st.session_state.linedists) - np.min(st.session_state.linedists)
     else:
-        yrange = len(st.session_state.linepts)   #Times some undetermined factor
+        yrange = len(st.session_state.linepts)*3   #Times some undetermined factor
         
     fig = plt.figure(figsize = ((Paras.xmax-Paras.xmin)/12.5*Paras.aspect,yrange/10))
     #Establish y axis distances/labels. If no distance data just use integers. 
