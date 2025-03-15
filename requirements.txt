@@ -1,7 +1,4 @@
-time
-numpy
-pandas
-matplotlib
-scipy
-urllib.request
-threading
+numpy=1.26.4
+pandas=2.2.2
+matplotlib=3.9.2
+scipy=3.9.2
