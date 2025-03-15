@@ -3,7 +3,6 @@
 import streamlit as st
 from urllib.request import urlopen
 import threading
-import logging
 import time
 
 def station_name(Data, station_code):

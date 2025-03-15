@@ -15,7 +15,7 @@
 import streamlit as st
 from streamlit.logger import get_logger
 
-from datetime import timedelta, date, datetime
+from datetime import timedelta, date
 from functions import find_line_info, station_name, station_code, find_all_trains, find_train_data, find_trains_pts
 from plot_functions import plot_trains
 import time
