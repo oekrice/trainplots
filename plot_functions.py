@@ -195,9 +195,11 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
 
         #Establish new method of plotting things
         start, end = startend(call_set)
-        if len(st.session_state.linedists) == 0:
-            st.session_state.linedists = np.arange(len(st.session_state.linepts))
-        avg_speed = abs(st.session_state.linedists[st.session_state.linepts.index(call_set[-1][0])] - st.session_state.linedists[st.session_state.linepts.index(call_set[0][0])]) / (end - start) #Avg. speed in miles per minute
+        if  st.session_state.linedists is None:
+            linedists_plot = np.arange(len(st.session_state.linepts))
+        else:
+            linedists_plot = st.session_state.linedists
+        avg_speed = abs(linedists_plot[st.session_state.linepts.index(call_set[-1][0])] - linedists_plot[st.session_state.linepts.index(call_set[0][0])]) / (end - start) #Avg. speed in miles per minute
         
         #print('Avg. speed', avg_speed)   
 
@@ -206,7 +208,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
         dists = []; stops = []; xas = []; xds = []
         
         for i in range(len(call_set[:])):
-            dists.append(st.session_state.linedists[st.session_state.linepts.index(call_set[i][0])])
+            dists.append(linedists_plot[st.session_state.linepts.index(call_set[i][0])])
             xas.append(ttox(call_set[i][1]))
             xds.append(ttox(call_set[i][2]))
 
@@ -301,16 +303,18 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
 
 
 
-def plot_trains(Paras, counter = -1):
+def plot_trains(Paras, counter = -1, save = False):
     
     dot_time = Paras.dot_time#xmin + 0.75*(xmax - xmin)
     #This is tricky...
-    if len(st.session_state.linedists) > 0:
+    if st.session_state.linedists is not None:
         yrange = np.max(st.session_state.linedists) - np.min(st.session_state.linedists)
     else:
         yrange = len(st.session_state.linepts)*3   #Times some undetermined factor
         
-    fig = plt.figure(figsize = ((Paras.xmax-Paras.xmin)/12.5*Paras.aspect,yrange/10))
+    ysize = max(5, yrange/10)
+    xsize = max(7.5, (Paras.xmax-Paras.xmin)/12.5)
+    fig = plt.figure(figsize = (xsize*Paras.aspect,ysize))
     #Establish y axis distances/labels. If no distance data just use integers. 
     #Shame that distance data isn't universal but meh. Could perhaps bodge later?
     yticks = []
@@ -319,7 +323,7 @@ def plot_trains(Paras, counter = -1):
     for i in range(len(st.session_state.linepts)):
         if len(st.session_state.linepts[i]) == 3 and st.session_state.linepts[i][0] != 'X':
             ylabels.append(st.session_state.linepts[i])
-            if len(st.session_state.linedists) > 0:
+            if  st.session_state.linedists is not None:
                 yticks.append(st.session_state.linedists[i])
             else:
                 yticks.append(i)
@@ -390,11 +394,14 @@ def plot_trains(Paras, counter = -1):
 
         
     plt.xlim(Paras.xmin,Paras.xmax)
-    plt.ylim(yticks[-1] + 5.0, yticks[0] - 5.0)
-    if not Paras.reverse:
+    tickrange = yticks[-1] - yticks[0]
+    plt.ylim(yticks[-1] + tickrange*0.1, yticks[0] - tickrange*0.1)
+    if Paras.reverse:
         plt.gca().invert_yaxis()
 
     st.pyplot(fig)
+    if save:
+        plt.savefig('./tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1]), dpi = 200)
     plt.clf()
     plt.close()
     #plt.close()
