@@ -4,6 +4,6 @@ time
 numpy
 pandas
 matplotlib
-scip
+scipy
 urllib
 threading
