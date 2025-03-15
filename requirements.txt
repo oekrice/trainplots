@@ -5,5 +5,5 @@ numpy
 pandas
 matplotlib
 scipy
-urllib
+urllib.request
 threading
