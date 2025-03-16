@@ -188,8 +188,10 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
         if start == end:
             #Not sure what's happened here, just ignore
             return
+        
         if  st.session_state.linedists is None:
-            linedists_plot = np.arange(len(st.session_state.linepts))
+            #linedists_plot = np.arange(len(st.session_state.linepts))
+            linedists_plot = st.session_state.linetimes
         else:
             linedists_plot = st.session_state.linedists
         avg_speed = abs(linedists_plot[st.session_state.linepts.index(call_set[-1][0])] - linedists_plot[st.session_state.linepts.index(call_set[0][0])]) / (end - start) #Avg. speed in miles per minute
@@ -330,13 +332,16 @@ def plot_trains(Paras, counter = -1, save = False):
     yticks = []
     ylabels = []
     
+    if  st.session_state.linedists is None:
+        #linedists_plot = np.arange(len(st.session_state.linepts))
+        linedists_plot = st.session_state.linetimes
+    else:
+        linedists_plot = st.session_state.linedists
+
     for i in range(len(st.session_state.linepts)):
         if len(st.session_state.linepts[i]) == 3 and st.session_state.linepts[i][0] != 'X':
             ylabels.append(st.session_state.linepts[i])
-            if  st.session_state.linedists is not None:
-                yticks.append(st.session_state.linedists[i])
-            else:
-                yticks.append(i)
+            yticks.append(linedists_plot[i])
             #plt.plot([-60,25*60], [linedists[i], linedists[i]], c= 'grey', alpha = 1.0, linewidth = 1.0)    
             
     plt.gca().set_yticks(yticks)
