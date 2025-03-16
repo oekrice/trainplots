@@ -41,7 +41,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
     elif operator == 'CS':
         colour = 'brown'
     elif operator == 'VT':
-        colour = 'purple'
+        colour = 'red'
     elif operator == 'MV':
         colour = 'black'
     elif operator == 'WR':
@@ -184,6 +184,10 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
 
         #Establish new method of plotting things
         start, end = startend(call_set)
+        
+        if start == end:
+            #Not sure what's happened here, just ignore
+            return
         if  st.session_state.linedists is None:
             linedists_plot = np.arange(len(st.session_state.linepts))
         else:
@@ -214,6 +218,8 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
                 if xds[-1] != xds[-2]: #Would give divzero error -- don't want that (sort out in a minute)   
                     #Choose what to do based on stops around the fact                
                     if abs(dists[-1] - dists[-2])/(xds[-1] - xds[-2]) < min_speed:
+                        if st.session_state.diag_flag:
+                            print('too slow 1')
                         #Too slow between successive departures/passes
                         if stops[-2] == 0:
                             stops[-1] = 1
@@ -230,6 +236,9 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
                 if xas[-1] != xds[-2]: #Would give divzero error -- don't want that (sort out in a minute)   
 
                     if xas[-1] > 0:
+                        if st.session_state.diag_flag:
+                            print('too slow 2')
+
                         #Too slow between a departure and next arrival
                         if abs(dists[-1] - dists[-2])/(xas[-1] - xds[-2]) < min_speed:
                             
@@ -379,9 +388,8 @@ def plot_trains(Paras, counter = -1, save = False):
         print('_________________________-')
         for k in range(len(st.session_state.allcalls_rt)):
             st.session_state.diag_flag = False
-
-            start = 'COLTONJ'
-            mint = 1000; maxt = 1010
+            start = 'TRHFGDFGB'
+            mint = 1520; maxt = 1530
             if st.session_state.allcalls_rt[k][0][0] == start:
                 if st.session_state.allcalls_rt[k][0][2] > mint and st.session_state.allcalls_rt[k][0][2] < maxt:
                     print(st.session_state.allcalls_rt[k])
