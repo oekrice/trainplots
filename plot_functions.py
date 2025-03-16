@@ -86,27 +86,27 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
         shape = 'D'
         order = 10
         max_speed = 2.0
-        min_speed = 0.1
+        min_speed = 0.5
     elif train_type == 2:
         shape = 'o'
         order = 2
         max_speed = 1.5
-        min_speed = 0.1
+        min_speed = 0.5
 
     elif train_type == 5 or train_type == 3:
         shape = 'p'
         order = 5
-        if train_type ==5:
+        if train_type == 5:
             max_speed = 2.0
         else:
             max_speed = 1.5
-        min_speed = 0.1
+        min_speed = 0.5
 
     else:
         shape = 's'
         order = 8
         max_speed = 1.0
-        min_speed = 0.2
+        min_speed = 0.5
 
     def ttox(t):  
         #Converts time into minutes since midnight
@@ -160,8 +160,6 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
             if dot:
                 plt.scatter(dot_time, yinterp(dot_time), zorder = 100, c= colour, edgecolor = 'black', s = 50, marker = shape)
 
-        if printer:
-            plt.scatter(xls, yls)
         return
     
 
@@ -170,20 +168,11 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
             up = 1
         else:
             up = 0
-            
-        printer = False
-        if operator == "TL":
-            if call_set[0][2] > 22 and call_set[0][2] < 24:
-            #if call_set[-1][0] == "SVG" and call_set[-1][2] < 500:
-                printer = False
-                if printer:
-                    print(call_set)
-                    
+                                
         if call_set[0][1] < 0 and call_set[0][2] < 0:
             return
         
         
-        #print(call_set)
         def startend(calls):
             #Gives start and end time for the set of calls
             start = calls[0][2]%100 + 60*(calls[0][2]//100) 
@@ -195,18 +184,18 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
 
         #Establish new method of plotting things
         start, end = startend(call_set)
-        if len(st.session_state.linedists) == 0:
-            st.session_state.linedists = np.arange(len(st.session_state.linepts))
-        avg_speed = abs(st.session_state.linedists[st.session_state.linepts.index(call_set[-1][0])] - st.session_state.linedists[st.session_state.linepts.index(call_set[0][0])]) / (end - start) #Avg. speed in miles per minute
+        if  st.session_state.linedists is None:
+            linedists_plot = np.arange(len(st.session_state.linepts))
+        else:
+            linedists_plot = st.session_state.linedists
+        avg_speed = abs(linedists_plot[st.session_state.linepts.index(call_set[-1][0])] - linedists_plot[st.session_state.linepts.index(call_set[0][0])]) / (end - start) #Avg. speed in miles per minute
         
-        #print('Avg. speed', avg_speed)   
-
         #Run through calls and change if necessary
         #Pretend there are stops if it's slow, and adjust timings to average if too fast
         dists = []; stops = []; xas = []; xds = []
         
         for i in range(len(call_set[:])):
-            dists.append(st.session_state.linedists[st.session_state.linepts.index(call_set[i][0])])
+            dists.append(linedists_plot[st.session_state.linepts.index(call_set[i][0])])
             xas.append(ttox(call_set[i][1]))
             xds.append(ttox(call_set[i][2]))
 
@@ -214,57 +203,72 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
             #establish if it is a stop
             if call_set[i][1] > 0.:   #If an arrival time is logged then there was a stop
                 isstop = 1
-            elif i == 0 and call_set[i][1] == -2:
+            elif i == 0 and call_set[i][1] == -2:   #Train starts here
                 isstop = 1
-            elif i == len(call_set) - 1 and call_set[i][2] == -2:
+            elif i == len(call_set) - 1 and call_set[i][2] == -2:   #Train ends here
                 isstop = 1
             stops.append(isstop)
-            #If stop is too quick, adjust it. Stops weird things happening with the cubics
-            if i > 0:
-                if xds[-1] - xds[-2] < 0.1 and xds[-1] > 0:
-                    xds[-1] = xds[-2] + abs(dists[-1] - dists[-2])/avg_speed
 
-                elif xas[-1] > 0 and xas[-1] - xds[-2] < 0.1:
-                    xas[-1] = xds[-2] + abs(dists[-1] - dists[-2])/avg_speed
-                    if xds[-1] < xas[-1]:
-                        xds[-1] = xas[-1]
-                elif xds[-1] > 0 and (dists[-1] - dists[-2])/(xds[-1] - xds[-2]) > max_speed*1.25:
-                    xds[-1] = xds[-2] + abs(dists[-1] - dists[-2])/avg_speed
-
-                elif xas[-1] > 0 and (dists[-1] - dists[-2])/(xas[-1] - xds[-2]) > max_speed*1.25:
-                    xas[-1] = xds[-2] + abs(dists[-1] - dists[-2])/avg_speed
-                    #print(i,'Too fast 4', call_set[i][0])
-                    if xds[-1] < xas[-1]:
-                        xds[-1] = xas[-1]
-                
             #Establish stops that aren't really but may as well be
             if i > 0:
-                if abs(dists[-1] - dists[-2])/(xds[-1] - xds[-2]) < min_speed:
-                    #print(i,'Too slow 1', call_set[i][0])
-                    stops[-1] = 1
-                    stops[-2] = 1
-                    #Put in a fake arrival time if necessary
-                    if xas[-1] < 0:
-                        xas[-1] = xds[-1]
-                    if xas[-2] < 0:
-                        xas[-2] = xds[-2]
-                        
-                if xas[-1] > 0:
-                    if abs(dists[-1] - dists[-2])/(xas[-1] - xds[-2]) < min_speed:
-                        #print(i,'Too slow 2', call_set[i][0])
-                        stops[-1] = 1
-                        stops[-2] = 1
+                if xds[-1] != xds[-2]: #Would give divzero error -- don't want that (sort out in a minute)   
+                    #Choose what to do based on stops around the fact                
+                    if abs(dists[-1] - dists[-2])/(xds[-1] - xds[-2]) < min_speed:
+                        #Too slow between successive departures/passes
+                        if stops[-2] == 0:
+                            stops[-1] = 1
+                            xas[-1] = xds[-2] + abs(dists[-1] - dists[-2])/max(avg_speed, min_speed*2)
+                        else:
+                            xds[-2] = xas[-1] - abs(dists[-1] - dists[-2])/max(avg_speed, min_speed*2)
+                        #stops[-2] = 1
+                        #Put in a fake arrival time if necessary
                         if xas[-1] < 0:
                             xas[-1] = xds[-1]
                         if xas[-2] < 0:
                             xas[-2] = xds[-2]
+                         
+                if xas[-1] != xds[-2]: #Would give divzero error -- don't want that (sort out in a minute)   
+
+                    if xas[-1] > 0:
+                        #Too slow between a departure and next arrival
+                        if abs(dists[-1] - dists[-2])/(xas[-1] - xds[-2]) < min_speed:
+                            
+                            if stops[-2] == 0:
+                                stops[-1] = 1
+                                xas[-1] = xds[-2] + abs(dists[-1] - dists[-2])/max(avg_speed, min_speed*2)
+                            else:
+                                xds[-2] = xas[-1] - abs(dists[-1] - dists[-2])/max(avg_speed, min_speed*2)
+
+                            if xas[-1] < 0:
+                                xas[-1] = xds[-1]
+                            if xas[-2] < 0:
+                                xas[-2] = xds[-2]
+
+            #If stop is too quick, adjust it. Stops weird things happening with the cubics
+            if i > 0:
+                if xds[-1] - xds[-2] < 0.1 and xds[-1] > 0:  #Sucessive departures too close
+                    xds[-1] = xds[-2] + abs(dists[-1] - dists[-2])/max_speed
+
+                elif xas[-1] > 0 and xas[-1] - xds[-2] < 0.1:   #Next arrival too close to departure
+                    xas[-1] = xds[-2] + abs(dists[-1] - dists[-2])/max_speed
+                    if xds[-1] < xas[-1]:
+                        xds[-1] = xas[-1]
+
+                elif xds[-1] > 0 and ((dists[-1] - dists[-2])/(xds[-1] - xds[-2])) > max_speed*1.25:  #Departs next too fast
+                    xds[-1] = xds[-2] + abs(dists[-1] - dists[-2])/max_speed
+
+                elif xas[-1] > 0 and ((dists[-1] - dists[-2])/(xas[-1] - xds[-2])) > max_speed*1.25:  #Arrives there too fast
+                    xas[-1] = xds[-2] + abs(dists[-1] - dists[-2])/max_speed
+                    if xds[-1] < xas[-1]:
+                        xds[-1] = xas[-1]
+                
             
         
         #Now slice in between the stops. Run through and check where they are. 
         #BC flags 0 for default, 1 for enter at speed and 2 for leave at speed
         k1 = 0; k2 = 1; bc1 = 0; bc2 = 0
-        if xds[0] >= 0.0 and xas[0] >= 0.0:
-            if abs(xds[0] - xas[0]) > 0.1:
+        if xds[0] >= 0.0 and xas[0] >= 0.0:   #Starts with the train stopped -- plot as a straight line
+            if abs(xds[0] - xas[0]) > 0.1:  #
                 plotbit([xas[0],xds[0]],[dists[0], dists[0]], 0, 0, fig, rt_flag)
                 
         while k2 < len(stops):
@@ -273,9 +277,6 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
                 if k1 == 0 and stops[k1] == 0:
                     bc1 = 1
                 
-                #print(call_set[k2][0], stops[k2], dists[k2], xas[k2], xds[k2], bc1, bc2)
-
-                #print(xds[k1:k2] + [xas[k2]])
                 plotbit(xds[k1:k2] + [xas[k2]], dists[k1:k2+1], bc1, bc2, fig, rt_flag)
                 k1 = k2 
                 
@@ -285,13 +286,15 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
                         plotbit([xas[k2],xds[k2]],[dists[k2], dists[k2]], 0, 0, fig, rt_flag)
                 
             k2 += 1
+            
         if stops[-1] == 0:   #Finish off last bit (though it's in motion)
+
             k2 = len(stops)
             bc2 = 1
-            if k1 == 0 and stops[k1] == 0:
+            if k1 == 0 and stops[k1] == 0:   #Train NEVER stops
                 bc1 = 1
             else:
-                bc1 = 0
+                bc1 = 0   #Starts stopped
 
             plotbit(xds[k1:k2], dists[k1:k2], bc1, bc2, fig, rt_flag)
             #print(bc1, bc2, xds[k1:k2], dists[k1:k2])
@@ -301,16 +304,18 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
 
 
 
-def plot_trains(Paras, counter = -1):
+def plot_trains(Paras, counter = -1, save = False):
     
     dot_time = Paras.dot_time#xmin + 0.75*(xmax - xmin)
     #This is tricky...
-    if len(st.session_state.linedists) > 0:
+    if st.session_state.linedists is not None:
         yrange = np.max(st.session_state.linedists) - np.min(st.session_state.linedists)
     else:
         yrange = len(st.session_state.linepts)*3   #Times some undetermined factor
         
-    fig = plt.figure(figsize = ((Paras.xmax-Paras.xmin)/12.5*Paras.aspect,yrange/10))
+    ysize = max(5, yrange/10)
+    xsize = max(7.5, (Paras.xmax-Paras.xmin)/12.5)
+    fig = plt.figure(figsize = (xsize*Paras.aspect,ysize))
     #Establish y axis distances/labels. If no distance data just use integers. 
     #Shame that distance data isn't universal but meh. Could perhaps bodge later?
     yticks = []
@@ -319,7 +324,7 @@ def plot_trains(Paras, counter = -1):
     for i in range(len(st.session_state.linepts)):
         if len(st.session_state.linepts[i]) == 3 and st.session_state.linepts[i][0] != 'X':
             ylabels.append(st.session_state.linepts[i])
-            if len(st.session_state.linedists) > 0:
+            if  st.session_state.linedists is not None:
                 yticks.append(st.session_state.linedists[i])
             else:
                 yticks.append(i)
@@ -359,7 +364,6 @@ def plot_trains(Paras, counter = -1):
     if Paras.plot_wtt:
         for k in range(len(st.session_state.allcalls)):
             
-            
             if st.session_state.linepts.index(st.session_state.allcalls[k][-1][0]) > st.session_state.linepts.index(st.session_state.allcalls[k][0][0]):
                 up = False
             else:
@@ -372,7 +376,16 @@ def plot_trains(Paras, counter = -1):
                     if st.session_state.allops[k] in Paras.plot_operators and int(st.session_state.allheads[k][:1]) in Paras.plot_heads:
                         plot_train(st.session_state.allcalls[k], st.session_state.allops[k], st.session_state.allheads[k], 1e6, fig, rt_flag = not(Paras.plot_rt))
     if Paras.plot_rt:
+        print('_________________________-')
         for k in range(len(st.session_state.allcalls_rt)):
+            st.session_state.diag_flag = False
+
+            start = 'COLTONJ'
+            mint = 1000; maxt = 1010
+            if st.session_state.allcalls_rt[k][0][0] == start:
+                if st.session_state.allcalls_rt[k][0][2] > mint and st.session_state.allcalls_rt[k][0][2] < maxt:
+                    print(st.session_state.allcalls_rt[k])
+                    st.session_state.diag_flag = True
             
             if st.session_state.linepts.index(st.session_state.allcalls_rt[k][-1][0]) > st.session_state.linepts.index(st.session_state.allcalls_rt[k][0][0]):
                 up = False
@@ -380,6 +393,8 @@ def plot_trains(Paras, counter = -1):
                 up = True
     
             start, end = startend(st.session_state.allcalls_rt[k])
+            
+
             if (up and Paras.plot_up) or (not up and Paras.plot_down):
             #if allops_rt[k] == 'ZZ' and allcalls_rt[k][0][2] > 300 and allcalls_rt[k][0][2] < 330:
                 if Paras.xmin < end and Paras.xmax > start:
@@ -390,11 +405,14 @@ def plot_trains(Paras, counter = -1):
 
         
     plt.xlim(Paras.xmin,Paras.xmax)
-    plt.ylim(yticks[-1] + 5.0, yticks[0] - 5.0)
-    if not Paras.reverse:
+    tickrange = yticks[-1] - yticks[0]
+    plt.ylim(yticks[-1] + tickrange*0.1, yticks[0] - tickrange*0.1)
+    if Paras.reverse:
         plt.gca().invert_yaxis()
 
     st.pyplot(fig)
+    if save:
+        plt.savefig('./tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1]), dpi = 200)
     plt.clf()
     plt.close()
     #plt.close()

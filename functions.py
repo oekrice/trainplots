@@ -39,29 +39,28 @@ def find_trains_pts(Data, init_date, start_code, end_code):
             go = False
     #Check these trains for distance data
     found1 = False; found2 = False
-    testpts = []; testdists = []; goodcode = None
+    testpts = None; testdists = None; goodcode = None
     for code in all_trains:
         if not found1 or not found2:
             test_url = "https://www.realtimetrains.co.uk/service/gb-nr:" + code + '/' + str(init_date) + '/detailed#allox_id=0'
-            testpts, testdists = find_line_info(Data, test_url, init = False)
-            if len(testpts) > 0:
+            testpts, testdists = find_line_info(test_url, init = False)
+            if testpts is not None:
                 found1 = True
-            if len(testdists) > 0:
+            if testdists is not None:
                 found2 = True
             goodcode = code
-            
-    
     return goodcode, testpts, testdists
 
-def find_line_info(Data, url, init = False, unspecified = False):
+#@st.cache_data
+def find_line_info(url, init = False, unspecified = False):
     try:
         page = urlopen(url)
     except:
         if init:
-            st.error("Train not found with url %s" % url)
+            st.error("Train not found. url giving the error: %s" % url)            
             st.stop()
         else:
-            return [], []
+            return None, None
         
     html_bytes = page.read()    
     html = html_bytes.decode("utf-8")
@@ -83,38 +82,38 @@ def find_line_info(Data, url, init = False, unspecified = False):
         else:
             go = False
             
-    if True:   #search for distances
-        ref_index = 0
-        go = True
-        while go:
-            find_text = 'class="miles"'
-            title_index = html[ref_index:].find(find_text) + ref_index
-            if title_index - ref_index >= 0:
-                start_index = title_index
-                end_index = html[start_index:].find("</span") + start_index
-                ref_index = end_index + 1
-                miles.append(int(html[start_index+14:end_index]))
-            else:
-                go = False
+    ref_index = 0
+    go = True
+    while go:
+        find_text = 'class="miles"'
+        title_index = html[ref_index:].find(find_text) + ref_index
+        if title_index - ref_index >= 0:
+            start_index = title_index
+            end_index = html[start_index:].find("</span") + start_index
+            ref_index = end_index + 1
+            miles.append(int(html[start_index+14:end_index]))
+        else:
+            go = False
 
-        ref_index = 0
-        go = True
-        while go:
-            find_text = 'class="chains"'
-            title_index = html[ref_index:].find(find_text) + ref_index
-            if title_index - ref_index >= 0:
-                start_index = title_index
-                end_index = html[start_index:].find("</span") + start_index
-                ref_index = end_index + 1
-                chains.append(int(html[start_index+15:end_index]))
-            else:
-                go = False
-    for i in range(len(miles)):
-        linedists.append(miles[i] + chains[i]/80)
-    
-    if init and not unspecified:
-        st.write("Train found travelling between", station_name(Data, linepts[0]), "and", station_name(Data, linepts[-1]), ". Can trim this if you like to speed things up:")
-    
+    ref_index = 0
+    go = True
+    while go:
+        find_text = 'class="chains"'
+        title_index = html[ref_index:].find(find_text) + ref_index
+        if title_index - ref_index >= 0:
+            start_index = title_index
+            end_index = html[start_index:].find("</span") + start_index
+            ref_index = end_index + 1
+            chains.append(int(html[start_index+15:end_index]))
+        else:
+            go = False
+    if len(miles) > 0:
+        for i in range(len(miles)):
+            linedists.append(miles[i] + chains[i]/80)
+    else:
+        linedists = None
+    if len(linepts) == 0:
+        linepts = None
     return linepts, linedists
 
 def train_info(Data, train_code):
@@ -133,7 +132,7 @@ def train_info(Data, train_code):
             if failcount > 2:
                 return [], [], [], []
             else:
-                time.sleep(0.5)
+                time.sleep(0.05)
                 failcount += 1
         
     
@@ -168,14 +167,13 @@ def train_info(Data, train_code):
     started = False
 
     on_line = False  #flag to tell if a train is on the line. For splitting up the journeys when trains rejoin the route. Being a bit st =id...
-    while go:
+    while go:   #For scheduled times
         find_text = "/search/detailed"
         title_index = html[ref_index:].find("/search/detailed/gb-nr") + ref_index
         if title_index - ref_index >= 0:
             start_index = title_index + len(find_text)
             end_index = html[start_index:].find("class") - 2 + start_index
             end_search_index = html[start_index + 1:].find(find_text) - 1 + start_index
-            #print(start_index, end_index, end_search_index)
             call = html[start_index+7:end_index-16]
             if call in Data.linepts:
 
@@ -195,7 +193,6 @@ def train_info(Data, train_code):
                     if html[dep_index+9:dep_index+14] == "&frac":
                         dep = dep + whichfrac(html[dep_index+14:dep_index+16])
                     
-                
                 arr_index = html[start_index:end_search_index].find('arr">') + start_index
                 arr = html[arr_index+5:arr_index+9]
                 if arr == '</di':
@@ -219,7 +216,7 @@ def train_info(Data, train_code):
                         go = False
                     if int(calls[-1][-1][1]) > arr and arr >= 0:
                         go = False
-                    if int(calls[-1][-1][2]) > arr and arr >= 0:
+                    if int(calls[-1][-1][2]) > arr + 60 and arr >= 0:
                         go = False
 
                 if go:
@@ -242,7 +239,7 @@ def train_info(Data, train_code):
     off_line_time = 0
     
     on_line = False  #flag to tell if a train is on the line. For splitting up the journeys when trains rejoin the route. Being a bit stupid...
-    while go:
+    while go:   #For actual times
         find_text = "/search/detailed"
         add = True
         title_index = html[ref_index:].find("/search/detailed/gb-nr") + ref_index
@@ -300,16 +297,17 @@ def train_info(Data, train_code):
                 if arr_act > 0:
                     if html[arr_act_index+4:arr_act_index+9] == "&frac":
                         arr_act = arr_act + whichfrac(html[arr_act_index+9:arr_act_index+11])
+                        
                     
                 if not on_line:
                     calls_rt.append([])
                      
-                if len(calls_rt[-1]) > 0:
+                if len(calls_rt[-1]) > 0:   #Deal with logical impossibilities. Sometimes an arrival is logged before a previous departure -- just deal with it.
                     if int(calls_rt[-1][-1][2]) > dep_act and dep_act >= 0:
                         add = False
                     if int(calls_rt[-1][-1][1]) > arr_act and arr_act >= 0:
                         add = False
-                    if int(calls_rt[-1][-1][2]) > arr_act and arr_act >= 0:
+                    if int(calls_rt[-1][-1][2]) > arr_act + 60 and arr_act >= 0:  #This is dubious -- but deal with it later
                         add = False
 
                 if arr_act < 0 and dep_act < 0:
@@ -323,6 +321,12 @@ def train_info(Data, train_code):
                         
                     on_line = True
                     off_line_time = 0
+                    
+                    #Check for previous false arrivals
+                    if len(calls_rt) > 1:
+                        if calls_rt[-2][1] < 0 and calls_rt[-2][2] > 0:
+                            calls_rt[-2][1] = calls_rt[-2][2]
+                            
             else:
                 off_line_time = off_line_time + 1
                 if off_line_time > 2:
@@ -332,7 +336,12 @@ def train_info(Data, train_code):
         else:
             go = False
     
-    #On old-signalled lines reports can get messy -- this clears them up
+    #On old-signalled lines reports can get messy -- this clears them up. Need to look into this more...
+    #BUT this might break other things...
+    #for calls in calls_rt:   #If no reported departure time, assume the same as arrival
+    #    for k in range(1, len(calls) - 1):
+    #        if calls[k][2] < 0.0 and calls[k][1] > 0.0:
+    #            calls[k][2] = calls[k][1]
     '''
     for calls in calls_rt:
         for k in range(1, len(calls) - 1):
@@ -366,10 +375,13 @@ def find_train_data(Data):
     threads = []
     Data.allcalls = []; Data.allops = []
     Data.allcalls_rt = []; Data.allops_rt = []; Data.allheads = []; Data.allheads_rt = []
-    nlumps = 10
+    lump_size = 100
     progress_bar = st.progress(0, text = "Finding all trains")
-    for lump in range(nlumps):
-        start_ind = int(lump*len(st.session_state.all_trains[:])/nlumps); end_ind = min(int((lump+1)*len(st.session_state.all_trains[:])/nlumps), len(st.session_state.all_trains[:]))
+    go = True; start = 0
+    Data.linepts = st.session_state.linepts
+    start_ind = 0
+    while go:
+        end_ind = min(start_ind + lump_size, len(st.session_state.all_trains[:]))
         for k, train in enumerate(st.session_state.all_trains[start_ind:end_ind]):
             x = threading.Thread(target=add_train_info, args=(Data, train), daemon = False)
             threads.append(x)
@@ -377,8 +389,13 @@ def find_train_data(Data):
             
         for j, x in enumerate(threads):
             x.join()
-            
-        progress_bar.progress((lump+1)/nlumps, text = "%d%% complete" % (100*(lump+1)/nlumps))
+        if end_ind == len(st.session_state.all_trains[:]):
+            go = False
+        start_ind = start_ind + lump_size
+        
+        progress_bar.progress(end_ind/len(st.session_state.all_trains[:]), text = "%d%% complete" % (100*(end_ind/len(st.session_state.all_trains[:]))))
+    st.session_state.found_alltrains = True
+
     progress_bar.progress(1.0, text = "All trains found")
     st.session_state.allcalls = Data.allcalls
     st.session_state.allops = Data.allops
@@ -398,8 +415,11 @@ def find_all_trains(Data):
     
     def trains_at_point(point, all_trains, traincount):
         #This should be sped up with multithreading
-        url = pturl(Data.linepts[k])
-        html = urlopen(url).read().decode("utf-8")
+        url = pturl(point)
+        try:
+            html = urlopen(url).read().decode("utf-8")
+        except:
+            return
         ref_index = 0
         go = True
         while go:
@@ -420,13 +440,13 @@ def find_all_trains(Data):
                 #print(html[start_index+1:start_index+7])
             else:
                 go = False
-    
+        return
+
     all_trains = []
     traincount = []   #number of stations in the range that the train calls at
     threads = []
-    #logging.basicConfig(format=format, level=logging.INFO,datefmt="%H:%M:%S")
-    for k in range(len(Data.linepts)):
-        x = threading.Thread(target=trains_at_point, args=(Data.linepts[k], all_trains, traincount), daemon = False)
+    for k in range(len(st.session_state.linepts)):
+        x = threading.Thread(target=trains_at_point, args=(st.session_state.linepts[k], all_trains, traincount), daemon = False)
         threads.append(x)
         x.start()
     for j, x in enumerate(threads):
