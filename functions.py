@@ -4,6 +4,7 @@ import streamlit as st
 from urllib.request import urlopen
 import threading
 import time
+import numpy as np
 
 def station_name(Data, station_code):
     #Looks up the station code and returns the proper name
@@ -329,7 +330,7 @@ def train_info(Data, train_code):
 
             else:
                 off_line_time = off_line_time + 1
-                if off_line_time > 2:
+                if off_line_time > 5:
                     on_line = False
             ref_index = end_index + 1
 
@@ -407,6 +408,36 @@ def find_train_data(Data):
     st.session_state.allheads = Data.allheads
     st.session_state.allheads_rt = Data.allheads_rt
     
+    #Run throught to make distances
+    def ttox(t):  
+        #Converts time into minutes since midnight
+        if t >= 0:
+            return (t//100)*60 + t - 100*(t//100)
+        else:
+            return t
+
+    if st.session_state.linedists is None:   #Figure out the average times between points
+        st.session_state.linetimes = np.zeros(len(st.session_state.linepts))
+        timecounts = np.zeros(len(st.session_state.linepts))
+        for calls in st.session_state.allcalls:
+            for i in range(1, len(calls)):
+                ind0 = st.session_state.linepts.index(calls[i-1][0])
+                ind1 = st.session_state.linepts.index(calls[i][0])
+                t0 = ttox(calls[i-1][2])
+                if calls[i][1] > 0:
+                    t1 = ttox(calls[i][1])
+                else:
+                    t1 = ttox(calls[i][2])
+                if ind1 == ind0 + 1:
+                    st.session_state.linetimes[ind1] += t1 - t0
+                    timecounts[ind1] += 1
+                elif ind0 == ind1 + 1:
+                    st.session_state.linetimes[ind0] += t1 - t0
+                    timecounts[ind0] += 1
+        timecounts[0] = 1.0
+        st.session_state.linetimes = st.session_state.linetimes/timecounts
+        for i in range(1, len(st.session_state.linetimes)):
+            st.session_state.linetimes[i] = st.session_state.linetimes[i-1] + st.session_state.linetimes[i] 
     return
     
 def find_all_trains(Data):

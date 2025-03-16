@@ -63,6 +63,8 @@ if "stat_selected_1" not in st.session_state:
     st.session_state.stat_selected_1 = False
 if "found_alltrains" not in st.session_state:
     st.session_state.found_alltrains = False
+if "diag_flag" not in st.session_state:
+    st.session_state.diag_flag = False
     
 def reset_route():
     st.session_state.all_trains = None
