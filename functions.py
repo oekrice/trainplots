@@ -132,7 +132,7 @@ def train_info(Data, train_code):
             if failcount > 2:
                 return [], [], [], []
             else:
-                time.sleep(0.5)
+                time.sleep(0.05)
                 failcount += 1
         
     
@@ -321,6 +321,12 @@ def train_info(Data, train_code):
                         
                     on_line = True
                     off_line_time = 0
+                    
+                    #Check for previous false arrivals
+                    if len(calls_rt) > 1:
+                        if calls_rt[-2][1] < 0 and calls_rt[-2][2] > 0:
+                            calls_rt[-2][1] = calls_rt[-2][2]
+                            
             else:
                 off_line_time = off_line_time + 1
                 if off_line_time > 2:

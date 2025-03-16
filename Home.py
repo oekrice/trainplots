@@ -287,9 +287,10 @@ def run():
         plot_trains(Paras, save = True)   #Saves to a temporary location by default
         fname = './tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
         fname_local = '%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
-        img = open(fname, "rb")
-        st.download_button(label="Download high-resolution plot", file_name = fname_local,  data=img,mime="image/png")
-            
+        with open(fname, "rb") as img:
+            st.download_button(label="Download high-resolution plot", file_name = fname_local,  data=img,mime="image/png")
+        os.system('rm -r %s' % fname)        
+    
 if __name__ == "__main__":
     run()
 
