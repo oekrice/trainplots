@@ -121,7 +121,7 @@ def run():
         rtt_code = st.text_input("Input RTT code (eg. P13795)")
         if rtt_code == '':
             st.stop()
-        init_date = st.date_input("Date this train happened", value ="today", min_value = datetime.date.today() - datetime.timedelta(days = 7), max_value = datetime.date.today())
+        init_date = st.date_input("Date this train happened", value ="today", min_value = datetime.date.today() - datetime.timedelta(days = 7), max_value = datetime.date.today(), on_change = reset_route)
         init_url = "https://www.realtimetrains.co.uk/service/gb-nr:" + rtt_code + '/' + str(init_date) + '/detailed#allox_id=0'
         st.session_state.linepts, st.session_state.linedists = find_line_info(init_url, init = True, unspecified = False)
         st.session_state.stat_selected_1 = True
@@ -257,7 +257,6 @@ def run():
                 t0 = datetime.datetime(2000,1,1,0,0,0) 
                 t1 = datetime.datetime(2000,1,1,23,59,0)
              
-                st.write(st.session_state.timeref)
                 Paras = plot_paras()
                 headtypes = []
                 for i in range(len(set(st.session_state.allheads))):

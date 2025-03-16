@@ -216,7 +216,7 @@ def train_info(Data, train_code):
                         go = False
                     if int(calls[-1][-1][1]) > arr and arr >= 0:
                         go = False
-                    if int(calls[-1][-1][2]) > arr and arr >= 0:
+                    if int(calls[-1][-1][2]) > arr + 60 and arr >= 0:
                         go = False
 
                 if go:
@@ -297,6 +297,7 @@ def train_info(Data, train_code):
                 if arr_act > 0:
                     if html[arr_act_index+4:arr_act_index+9] == "&frac":
                         arr_act = arr_act + whichfrac(html[arr_act_index+9:arr_act_index+11])
+                        
                     
                 if not on_line:
                     calls_rt.append([])
@@ -306,8 +307,8 @@ def train_info(Data, train_code):
                         add = False
                     if int(calls_rt[-1][-1][1]) > arr_act and arr_act >= 0:
                         add = False
-                    #if int(calls_rt[-1][-1][2]) > arr_act and arr_act >= 0:  #This is dubious -- but deal with it later
-                    #    add = False
+                    if int(calls_rt[-1][-1][2]) > arr_act + 60 and arr_act >= 0:  #This is dubious -- but deal with it later
+                        add = False
 
                 if arr_act < 0 and dep_act < 0:
                     off_line_time = off_line_time + 1
@@ -330,6 +331,11 @@ def train_info(Data, train_code):
             go = False
     
     #On old-signalled lines reports can get messy -- this clears them up. Need to look into this more...
+    #BUT this might break other things...
+    #for calls in calls_rt:   #If no reported departure time, assume the same as arrival
+    #    for k in range(1, len(calls) - 1):
+    #        if calls[k][2] < 0.0 and calls[k][1] > 0.0:
+    #            calls[k][2] = calls[k][1]
     '''
     for calls in calls_rt:
         for k in range(1, len(calls) - 1):
@@ -404,7 +410,10 @@ def find_all_trains(Data):
     def trains_at_point(point, all_trains, traincount):
         #This should be sped up with multithreading
         url = pturl(point)
-        html = urlopen(url).read().decode("utf-8")
+        try:
+            html = urlopen(url).read().decode("utf-8")
+        except:
+            return
         ref_index = 0
         go = True
         while go:
@@ -425,7 +434,8 @@ def find_all_trains(Data):
                 #print(html[start_index+1:start_index+7])
             else:
                 go = False
-    
+        return
+
     all_trains = []
     traincount = []   #number of stations in the range that the train calls at
     threads = []

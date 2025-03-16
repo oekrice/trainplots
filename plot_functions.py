@@ -86,12 +86,12 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
         shape = 'D'
         order = 10
         max_speed = 2.0
-        min_speed = 0.3
+        min_speed = 0.5
     elif train_type == 2:
         shape = 'o'
         order = 2
         max_speed = 1.5
-        min_speed = 0.2
+        min_speed = 0.5
 
     elif train_type == 5 or train_type == 3:
         shape = 'p'
@@ -100,13 +100,13 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
             max_speed = 2.0
         else:
             max_speed = 1.5
-        min_speed = 0.2
+        min_speed = 0.5
 
     else:
         shape = 's'
         order = 8
         max_speed = 1.0
-        min_speed = 0.2
+        min_speed = 0.5
 
     def ttox(t):  
         #Converts time into minutes since midnight
@@ -218,14 +218,17 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
                         if stops[-2] == 0:
                             stops[-1] = 1
                             xas[-1] = xds[-2] + abs(dists[-1] - dists[-2])/max(avg_speed, min_speed*2)
-
+                        else:
+                            xds[-2] = xas[-1] - abs(dists[-1] - dists[-2])/max(avg_speed, min_speed*2)
                         #stops[-2] = 1
                         #Put in a fake arrival time if necessary
                         if xas[-1] < 0:
                             xas[-1] = xds[-1]
                         if xas[-2] < 0:
                             xas[-2] = xds[-2]
-                            
+                         
+                if xas[-1] != xds[-2]: #Would give divzero error -- don't want that (sort out in a minute)   
+
                     if xas[-1] > 0:
                         #Too slow between a departure and next arrival
                         if abs(dists[-1] - dists[-2])/(xas[-1] - xds[-2]) < min_speed:
@@ -233,6 +236,8 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
                             if stops[-2] == 0:
                                 stops[-1] = 1
                                 xas[-1] = xds[-2] + abs(dists[-1] - dists[-2])/max(avg_speed, min_speed*2)
+                            else:
+                                xds[-2] = xas[-1] - abs(dists[-1] - dists[-2])/max(avg_speed, min_speed*2)
 
                             if xas[-1] < 0:
                                 xas[-1] = xds[-1]
