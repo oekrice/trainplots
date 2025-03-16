@@ -239,6 +239,7 @@ def train_info(Data, train_code):
     off_line_time = 0
     
     on_line = False  #flag to tell if a train is on the line. For splitting up the journeys when trains rejoin the route. Being a bit stupid...
+    flag = False
     while go:   #For actual times
         find_text = "/search/detailed"
         add = True
@@ -298,7 +299,6 @@ def train_info(Data, train_code):
                     if html[arr_act_index+4:arr_act_index+9] == "&frac":
                         arr_act = arr_act + whichfrac(html[arr_act_index+9:arr_act_index+11])
                         
-                    
                 if not on_line:
                     calls_rt.append([])
                      
@@ -312,7 +312,7 @@ def train_info(Data, train_code):
 
                 if arr_act < 0 and dep_act < 0:
                     off_line_time = off_line_time + 1
-                    if off_line_time > 5:
+                    if off_line_time > 2:
                         on_line = False
                     add = False
                     
@@ -323,10 +323,10 @@ def train_info(Data, train_code):
                     off_line_time = 0
                     
                     #Check for previous false arrivals
-                    if len(calls_rt) > 1:
-                        if calls_rt[-2][1] < 0 and calls_rt[-2][2] > 0:
-                            calls_rt[-2][1] = calls_rt[-2][2]
-                            
+                    if len(calls_rt[-1]) > 1:
+                        if calls_rt[-1][-2][2] < 0 and calls_rt[-1][-2][1] > 0:
+                            calls_rt[-1][-1][2] = calls_rt[-1][-2][1]
+
             else:
                 off_line_time = off_line_time + 1
                 if off_line_time > 2:
@@ -335,7 +335,10 @@ def train_info(Data, train_code):
 
         else:
             go = False
-    
+        if flag:
+            print(calls_rt)
+            flag = False
+
     #On old-signalled lines reports can get messy -- this clears them up. Need to look into this more...
     #BUT this might break other things...
     #for calls in calls_rt:   #If no reported departure time, assume the same as arrival

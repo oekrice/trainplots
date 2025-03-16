@@ -166,13 +166,13 @@ def run():
         if start_name is None or end_name is None:
             st.stop()
             
+
         start_code = start_name[-4:-1]
         end_code = end_name[-4:-1]
             
         if st.button("Find route between these stations", on_click = reset_route):
             rtt_code, linepts, linedists = find_trains_pts(Data, init_date, start_code, end_code)
             st.session_state.linepts = linepts; st.session_state.linedists = linedists
-            
             st.session_state.stat_selected_1 = True
 
             if st.session_state.linepts is None:
@@ -279,7 +279,10 @@ def run():
                 trange_min, trange_max = st.slider("Time range:", min_value = t0, max_value = t1, value = (init_minval, init_maxval), format = "HH:mm")
 
                 Paras.xmin = trange_min.hour*60 + trange_min.minute; Paras.xmax = trange_max.hour*60 + trange_max.minute
-                dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = st.session_state.timeref, format = "HH:mm")
+                if Data.plot_date == datetime.date.today():
+                    dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = st.session_state.timeref, format = "HH:mm")
+                else:
+                    dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = t1, format = "HH:mm")
                 Paras.dot_time = dot_time.hour*60 + dot_time.minute
                 
             st.form_submit_button("Update Plot")
