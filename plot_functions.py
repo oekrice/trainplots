@@ -8,8 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline
 import streamlit as st
+from matplotlib.collections import LineCollection
 
-def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
+def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors, rt_flag = False):
     #Adds an individual train to the plot
     colour = 'black'
     if operator == 'GR':
@@ -115,7 +116,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
         else:
             return t
         
-    def plotbit(xls, yls, bc1, bc2, fig, rt_flag):
+    def plotbit(xls, yls, bc1, bc2, fig, rt_flag, alllines, allcolors):
         
         #print(tls)
         if rt_flag:
@@ -141,7 +142,8 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
         if len(yls) == 2 and yls[1] == yls[0]:   #Train is stationary
             if dot:
                 xls[-1] = dot_time
-            plt.plot(xls,yls, c= colour, linewidth = lw, alpha = alpha, zorder = order)
+            #plt.plot(xls,yls, c= colour, linewidth = lw, alpha = alpha, zorder = order)
+            alllines.append(np.column_stack((xls, yls))); allcolors.append(colour)
             if dot:
                 plt.scatter(dot_time, yls[0], zorder= 100, c= colour, edgecolor = 'black', s = 50, marker = shape)
         else:
@@ -153,9 +155,11 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
             yis = yinterp(xis)                
                 
             if dot_ind < 0:
-                plt.plot(xis, yis, c= colour, linewidth = lw, alpha = alpha, zorder = order)
+                #plt.plot(xis, yis, c= colour, linewidth = lw, alpha = alpha, zorder = order)
+                alllines.append(np.column_stack((xis, yis))); allcolors.append(colour)
             else:
-                plt.plot(xis[:dot_ind], yis[:dot_ind], c= colour, linewidth = lw, alpha = alpha, zorder = order)
+                #plt.plot(xis[:dot_ind], yis[:dot_ind], c= colour, linewidth = lw, alpha = alpha, zorder = order)
+                alllines.append(np.column_stack((xis[:dot_ind], yis[:dot_ind]))); allcolors.append(colour)
 
             if dot:
                 plt.scatter(dot_time, yinterp(dot_time), zorder = 100, c= colour, edgecolor = 'black', s = 50, marker = shape)
@@ -280,7 +284,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
         k1 = 0; k2 = 1; bc1 = 0; bc2 = 0
         if xds[0] >= 0.0 and xas[0] >= 0.0:   #Starts with the train stopped -- plot as a straight line
             if abs(xds[0] - xas[0]) > 0.1:  #
-                plotbit([xas[0],xds[0]],[dists[0], dists[0]], 0, 0, fig, rt_flag)
+                plotbit([xas[0],xds[0]],[dists[0], dists[0]], 0, 0, fig, rt_flag, alllines, allcolors)
                 
         while k2 < len(stops):
             if stops[k2] == 1:   #Is a stop, do a plot.
@@ -288,13 +292,13 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
                 if k1 == 0 and stops[k1] == 0:
                     bc1 = 1
                 
-                plotbit(xds[k1:k2] + [xas[k2]], dists[k1:k2+1], bc1, bc2, fig, rt_flag)
+                plotbit(xds[k1:k2] + [xas[k2]], dists[k1:k2+1], bc1, bc2, fig, rt_flag, alllines, allcolors)
                 k1 = k2 
                 
                 #Plot line for when train is stationary. Can put end ones on as well?
                 if xds[k2] >= 0.0 and xas[k2] >= 0.0:
                     if abs(xds[k2] - xas[k2]) > 0.1:
-                        plotbit([xas[k2],xds[k2]],[dists[k2], dists[k2]], 0, 0, fig, rt_flag)
+                        plotbit([xas[k2],xds[k2]],[dists[k2], dists[k2]], 0, 0, fig, rt_flag, alllines, allcolors)
                 
             k2 += 1
             
@@ -307,7 +311,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, rt_flag = False):
             else:
                 bc1 = 0   #Starts stopped
 
-            plotbit(xds[k1:k2], dists[k1:k2], bc1, bc2, fig, rt_flag)
+            plotbit(xds[k1:k2], dists[k1:k2], bc1, bc2, fig, rt_flag, alllines, allcolors)
             #print(bc1, bc2, xds[k1:k2], dists[k1:k2])
 
     return 
@@ -375,6 +379,7 @@ def plot_trains(Paras, counter = -1, save = False):
             end = calls_test[-1][2]%100 + 60*( calls_test[-1][2]//100)
         return start,end
         
+    alllines = []; allcolors = []
     if Paras.plot_wtt:
         for k in range(len(st.session_state.allcalls)):
             
@@ -388,7 +393,15 @@ def plot_trains(Paras, counter = -1, save = False):
             if (up and Paras.plot_up) or (not up and Paras.plot_down):
                 if Paras.xmin < end and Paras.xmax > start:
                     if st.session_state.allops[k] in Paras.plot_operators and int(st.session_state.allheads[k][:1]) in Paras.plot_heads:
-                        plot_train(st.session_state.allcalls[k], st.session_state.allops[k], st.session_state.allheads[k], 1e6, fig, rt_flag = not(Paras.plot_rt))
+                        plot_train(st.session_state.allcalls[k], st.session_state.allops[k], st.session_state.allheads[k], 1e6, fig, alllines, allcolors, rt_flag = not(Paras.plot_rt))
+    
+        if not(Paras.plot_rt):
+            line_collection = LineCollection(alllines, colors=allcolors, linewidths=2.5, alpha = 1.0)
+        else:
+            line_collection = LineCollection(alllines, colors=allcolors, linewidths=2.5, alpha = 0.1)
+        plt.gca().add_collection(line_collection)
+
+    alllines = []; allcolors = []
     if Paras.plot_rt:
         print('_________________________-')
         for k in range(len(st.session_state.allcalls_rt)):
@@ -413,7 +426,9 @@ def plot_trains(Paras, counter = -1, save = False):
                 if Paras.xmin < end and Paras.xmax > start:
                     if (st.session_state.allops_rt[k] in Paras.plot_operators) and (int(st.session_state.allheads_rt[k][:1]) in Paras.plot_heads):
 
-                        plot_train(st.session_state.allcalls_rt[k], st.session_state.allops_rt[k], st.session_state.allheads_rt[k], dot_time, fig, rt_flag = True)
+                        plot_train(st.session_state.allcalls_rt[k], st.session_state.allops_rt[k], st.session_state.allheads_rt[k], dot_time, fig, alllines, allcolors, rt_flag = True)
+        line_collection = LineCollection(alllines, colors=allcolors, linewidths=2.5, alpha = 1.0)
+        plt.gca().add_collection(line_collection)
             #plot_train(linepts, linedists, allcalls_rt[k], allops_rt[k], allheads_rt[k], dot_time, fig, rt_flag = True)
 
         

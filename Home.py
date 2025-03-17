@@ -66,6 +66,7 @@ if "found_alltrains" not in st.session_state:
 if "diag_flag" not in st.session_state:
     st.session_state.diag_flag = False
     
+    
 def reset_route():
     st.session_state.all_trains = None
     st.session_state.allcalls = None
@@ -293,7 +294,7 @@ def run():
         fname = './tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
         fname_local = '%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
         with open(fname, "rb") as img:
-            st.download_button(label="Download high-resolution plot", file_name = fname_local,  data=img,mime="image/png")
+            st.download_button(label="Download high-resolution plot (may not be fast...)", file_name = fname_local,  data=img,mime="image/png")
         os.system('rm -r %s' % fname)        
     
 if __name__ == "__main__":

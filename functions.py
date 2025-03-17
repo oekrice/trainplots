@@ -326,7 +326,7 @@ def train_info(Data, train_code):
                     #Check for previous false arrivals
                     if len(calls_rt[-1]) > 1:
                         if calls_rt[-1][-2][2] < 0 and calls_rt[-1][-2][1] > 0:
-                            calls_rt[-1][-1][2] = calls_rt[-1][-2][1]
+                            calls_rt[-1][-2][2] = calls_rt[-1][-2][1]
 
             else:
                 off_line_time = off_line_time + 1
@@ -373,6 +373,14 @@ def add_train_info(Data, train_code):
             Data.allheads_rt.append(headcode)
     return
 
+'''
+def update_train_data(Data):
+    #To be used with the live thing -- using current time to see which trains are currently active. Won't add more because hard.
+    for k, calls in enumerate(st.session_state.allcalls):
+'''        
+        
+    
+    
 def find_train_data(Data):
     #Finds the data for the trains with IDs in all_trains.
     #Can specify various filtering in this function I'd say
