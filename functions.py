@@ -5,6 +5,7 @@ from urllib.request import urlopen
 import threading
 import time
 import numpy as np
+import datetime
 
 def station_name(Data, station_code):
     #Looks up the station code and returns the proper name
@@ -117,7 +118,7 @@ def find_line_info(url, init = False, unspecified = False):
         linepts = None
     return linepts, linedists
 
-def train_info(Data, train_code):
+def train_info(Data, train_code, update = False):
     #This function finds out everything about a train on a given date, using advanced scraping from RTT
     url = 'https://www.realtimetrains.co.uk/service/gb-nr:' + train_code + '/' + str(Data.plot_date) + '/detailed'
     failcount = 0
@@ -227,7 +228,7 @@ def train_info(Data, train_code):
                     off_line_time = 0
             else:
                 off_line_time = off_line_time + 1
-                if off_line_time > 2:
+                if off_line_time > 5:
                     on_line = False
             ref_index = end_index + 1
 
@@ -244,6 +245,7 @@ def train_info(Data, train_code):
     while go:   #For actual times
         find_text = "/search/detailed"
         add = True
+        stopnext = False
         title_index = html[ref_index:].find("/search/detailed/gb-nr") + ref_index
         if title_index - ref_index >= 0:
             start_index = title_index + len(find_text)
@@ -309,8 +311,8 @@ def train_info(Data, train_code):
                     if int(calls_rt[-1][-1][1]) > arr_act and arr_act >= 0:
                         add = False
                     if int(calls_rt[-1][-1][2]) > arr_act + 60 and arr_act >= 0:  #This is dubious -- but deal with it later
-                        add = False
-
+                        add = False                    
+                    
                 if arr_act < 0 and dep_act < 0:
                     off_line_time = off_line_time + 1
                     if off_line_time > 2:
@@ -326,7 +328,7 @@ def train_info(Data, train_code):
                     #Check for previous false arrivals
                     if len(calls_rt[-1]) > 1:
                         if calls_rt[-1][-2][2] < 0 and calls_rt[-1][-2][1] > 0:
-                            calls_rt[-1][-1][2] = calls_rt[-1][-2][1]
+                            calls_rt[-1][-2][2] = calls_rt[-1][-2][1]
 
             else:
                 off_line_time = off_line_time + 1
@@ -337,48 +339,96 @@ def train_info(Data, train_code):
         else:
             go = False
         if flag:
-            print(calls_rt)
             flag = False
 
-    #On old-signalled lines reports can get messy -- this clears them up. Need to look into this more...
-    #BUT this might break other things...
-    #for calls in calls_rt:   #If no reported departure time, assume the same as arrival
-    #    for k in range(1, len(calls) - 1):
-    #        if calls[k][2] < 0.0 and calls[k][1] > 0.0:
-    #            calls[k][2] = calls[k][1]
-    '''
-    for calls in calls_rt:
-        for k in range(1, len(calls) - 1):
-            if calls[k][1] == -2:
-                calls[k][1] = -1
-                
-            if calls[k][2] == -2:
-                calls[k][2] = calls[k][1]
-                calls[k][1] = -1
-    '''
     return calls, calls_rt, operator, headcode
 
-def add_train_info(Data, train_code):
+def add_train_info(Data, train_code, update = 0, update_index = -1):
     #Just does train info but appends the information
     calls, calls_rt, ops, headcode = train_info(Data, train_code)
-    for c in range(len(calls)):
-        if len(calls[c]) > 1:
-            Data.allcalls.append(calls[c])
-            Data.allops.append(ops)
-            Data.allheads.append(headcode)
-    for c in range(len(calls_rt)):
-        if len(calls_rt[c]) > 1:
-            Data.allcalls_rt.append(calls_rt[c])
-            Data.allops_rt.append(ops)
-            Data.allheads_rt.append(headcode)
+    if update == 0:   #append to a nothing
+        for c in range(len(calls)):
+            if len(calls[c]) > 1:
+                Data.allcalls.append(calls[c])
+                Data.allops.append(ops)
+                Data.allheads.append(headcode)
+                Data.allcodes.append(train_code)
+        for c in range(len(calls_rt)):
+            if len(calls_rt[c]) > 1:
+                Data.allcalls_rt.append(calls_rt[c])
+                Data.allops_rt.append(ops)
+                Data.allheads_rt.append(headcode)
+                Data.allcodes_rt.append(train_code)
+    elif update == 1:
+        for c in range(len(calls)):
+            if len(calls[c]) > 1:
+                if Data.allcalls[update_index][0][0] == calls[c][0][0]:
+                    Data.allcalls[update_index] = calls[c]
+                    Data.allops[update_index] = ops
+                    Data.allheads[update_index] = headcode
+    else:
+        for c in range(len(calls_rt)):
+            if len(calls_rt[c]) > 1:
+                if Data.allcalls_rt[update_index][0][0] == calls_rt[c][0][0]:
+                    Data.allcalls_rt[update_index] = calls_rt[c]
+                    Data.allops_rt[update_index] = ops
+                    Data.allheads_rt[update_index] = headcode
     return
 
+
+def startend(calls):
+    #Gives start and end time for the set of calls
+    start = calls[0][2]%100 + 60*(calls[0][2]//100) 
+    if calls[-1][1] >= 0:
+        end = calls[-1][1]%100 + 60*( calls[-1][1]//100)
+    else:
+        end = calls[-1][2]%100 + 60*( calls[-1][2]//100)
+    return start,end
+
+def update_train_data(Data):
+    #To be used with the live thing -- using current time to see which trains are currently active. Won't add more because hard.
+    current_minutes = datetime.datetime.now().hour*60 + datetime.datetime.now().minute
+    Data.allcalls = st.session_state.allcalls; Data.allops = st.session_state.allops
+    Data.allcalls_rt =st.session_state.allcalls_rt ; Data.allops_rt = st.session_state.allops_rt; Data.allheads = st.session_state.allheads; Data.allheads_rt = st.session_state.allheads_rt
+    Data.allcodes = st.session_state.allcodes; Data.allcodes_rt = st.session_state.allcodes_rt
+    Data.linepts = st.session_state.linepts
+    #Do calls
+    threads = []
+    for k, calls in enumerate(st.session_state.allcalls):
+        start, end = startend(st.session_state.allcalls[k])
+        if current_minutes < end + 30 and current_minutes > start - 30:  #These are trains which need updating            
+            #print(k, st.session_state.allheads[k], start , end, current_minutes)
+            x = threading.Thread(target=add_train_info, args=(Data, st.session_state.allcodes[k], 1, k), daemon = False)
+            threads.append(x)
+            x.start()
+    #Do calls_rt
+    for j, x in enumerate(threads):
+        x.join()
+    for k, calls in enumerate(st.session_state.allcalls_rt):
+        start, end = startend(st.session_state.allcalls_rt[k])
+        if current_minutes < end + 30 and current_minutes > start - 30:  #These are trains which need updating            
+            #print(k, st.session_state.allheads[k], start , end, current_minutes)
+            x = threading.Thread(target=add_train_info, args=(Data, st.session_state.allcodes_rt[k], 2, k), daemon = False)
+            threads.append(x)
+            x.start()
+    for j, x in enumerate(threads):
+        x.join()
+    st.session_state.allcalls = Data.allcalls
+    st.session_state.allops = Data.allops
+    st.session_state.allcalls_rt = Data.allcalls_rt
+    st.session_state.allops_rt = Data.allops_rt
+    st.session_state.allheads = Data.allheads
+    st.session_state.allheads_rt = Data.allheads_rt
+    st.session_state.allcodes = Data.allcodes
+    st.session_state.allcodes_rt = Data.allcodes_rt
+    
 def find_train_data(Data):
     #Finds the data for the trains with IDs in all_trains.
     #Can specify various filtering in this function I'd say
     threads = []
     Data.allcalls = []; Data.allops = []
     Data.allcalls_rt = []; Data.allops_rt = []; Data.allheads = []; Data.allheads_rt = []
+    Data.allcodes = []; Data.allcodes_rt = []
     lump_size = 100
     progress_bar = st.progress(0, text = "Finding all trains")
     go = True; start = 0
@@ -387,7 +437,7 @@ def find_train_data(Data):
     while go:
         end_ind = min(start_ind + lump_size, len(st.session_state.all_trains[:]))
         for k, train in enumerate(st.session_state.all_trains[start_ind:end_ind]):
-            x = threading.Thread(target=add_train_info, args=(Data, train), daemon = False)
+            x = threading.Thread(target=add_train_info, args=(Data, train,0,-1), daemon = False)
             threads.append(x)
             x.start()
             
@@ -407,6 +457,9 @@ def find_train_data(Data):
     st.session_state.allops_rt = Data.allops_rt
     st.session_state.allheads = Data.allheads
     st.session_state.allheads_rt = Data.allheads_rt
+    st.session_state.allcodes = Data.allcodes
+    st.session_state.allcodes_rt = Data.allcodes_rt
+    
     
     #Run throught to make distances
     def ttox(t):  

@@ -16,7 +16,7 @@ import streamlit as st
 from streamlit.logger import get_logger
 
 import datetime
-from functions import find_line_info, station_name, station_code, find_all_trains, find_train_data, find_trains_pts
+from functions import find_line_info, station_name, station_code, find_all_trains, find_train_data, find_trains_pts, update_train_data
 from plot_functions import plot_trains
 import time
 import os
@@ -43,6 +43,8 @@ if "allcalls" not in st.session_state:
     st.session_state.allcalls = None
 if "allops" not in st.session_state:
     st.session_state.allops = None
+if "allcodes" not in st.session_state:
+    st.session_state.allcodes = None
 if "allcalls_rt" not in st.session_state:
     st.session_state.allcalls_rt = None
 if "allops_rt" not in st.session_state:
@@ -51,6 +53,8 @@ if "allheads" not in st.session_state:
     st.session_state.allheads = None
 if "allheads_rt" not in st.session_state:
     st.session_state.allheads_rt = None
+if "allcodes_rt" not in st.session_state:
+    st.session_state.allcodes_rt = None
 if "timeref" not in st.session_state:
     st.session_state.timeref = None
 if "current_datetime" not in st.session_state:
@@ -65,6 +69,7 @@ if "found_alltrains" not in st.session_state:
     st.session_state.found_alltrains = False
 if "diag_flag" not in st.session_state:
     st.session_state.diag_flag = False
+    
     
 def reset_route():
     st.session_state.all_trains = None
@@ -289,13 +294,16 @@ def run():
                 
             st.form_submit_button("Update Plot")
 
+        if st.button("Update train times"):
+            #Need to update trains then do the above, but specify a load of the parameters
+            update_train_data(Data)
         plot_trains(Paras, save = True)   #Saves to a temporary location by default
         fname = './tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
         fname_local = '%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
         with open(fname, "rb") as img:
-            st.download_button(label="Download high-resolution plot", file_name = fname_local,  data=img,mime="image/png")
+            st.download_button(label="Download high-resolution plot (may not be fast...)", file_name = fname_local,  data=img,mime="image/png")
         os.system('rm -r %s' % fname)        
-    
+
 if __name__ == "__main__":
     run()
 
