@@ -403,7 +403,7 @@ def plot_trains(Paras, counter = -1, save = False):
 
     alllines = []; allcolors = []
     if Paras.plot_rt:
-        print('_________________________-')
+        #print('_________________________-')
         for k in range(len(st.session_state.allcalls_rt)):
             st.session_state.diag_flag = False
             start = 'TRHFGDFGB'
