@@ -22,7 +22,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
     elif operator == 'NT':
         colour = 'purple'
     elif operator == 'ZZ':
-        colour = 'orange'
+        colour = 'darkgoldenrod'
     elif operator == 'LD':
         colour = 'darkblue'
     elif operator == 'GC':
@@ -42,7 +42,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
     elif operator == 'CS':
         colour = 'brown'
     elif operator == 'VT':
-        colour = 'red'
+        colour = 'grey'
     elif operator == 'MV':
         colour = 'black'
     elif operator == 'WR':
@@ -60,13 +60,13 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
     elif operator == 'SW':
         colour = 'red'
     elif operator == 'LO':
-        colour = 'red'
+        colour = 'orange'
     elif operator == 'SN':
         colour = 'green'
     elif operator == 'GX':
         colour = 'lightblue'
     elif operator == 'LT':
-        colour = 'red'
+        colour = 'blue'
     elif operator == 'LS':
         colour = 'brown'
     elif operator == 'GW':
