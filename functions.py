@@ -128,16 +128,13 @@ def train_info(Data, train_code, update = False):
             page = urlopen(url)
             html_bytes = page.read()    
             html = html_bytes.decode("utf-8")
-
             go = False
-        except:
-            if failcount > 2:
-                return [], [], [], []
-            else:
-                time.sleep(0.05)
-                failcount += 1
+        except:   #Try to go for the day before? Trains might have happened before midnight
+            try:
+                url = 'https://www.realtimetrains.co.uk/service/gb-nr:' + train_code + '/' + str(Data.plot_yesterday) + '/detailed'
+            except:
+                return [],[],[],[]
         
-    
     find_text = "train-operator"
     title_index = html.find(find_text) + len(find_text) + 2
     
@@ -149,7 +146,7 @@ def train_info(Data, train_code, update = False):
     headcode = html[title_index:title_index+4]
 
     if headcode == "0B00":
-        #Is actually a bus
+        #Is actually a bus. Don't plot.
         return [], [], [], []
         
     def whichfrac(string):
@@ -242,6 +239,7 @@ def train_info(Data, train_code, update = False):
     
     on_line = False  #flag to tell if a train is on the line. For splitting up the journeys when trains rejoin the route. Being a bit stupid...
     flag = False
+    rt_flag = 0
     while go:   #For actual times
         find_text = "/search/detailed"
         add = True
@@ -252,6 +250,7 @@ def train_info(Data, train_code, update = False):
             end_index = html[start_index:].find("class") - 2 + start_index
             end_search_index = html[start_index + 1:].find(find_text) - 1 + start_index
             call = html[start_index+7:end_index-16]
+            
             if call in Data.linepts:
 
                 dep_index = html[start_index:end_search_index].find('dep">') + start_index
@@ -285,10 +284,15 @@ def train_info(Data, train_code, update = False):
 
                 #print(html[dep_act_index-8:dep_act_index-2])
                 #This stop isn't actually here (the train didn't run)
+                #BUT if doing the update, DO include these!                    
                 if html[dep_act_index-8:dep_act_index-2] == "(RMME)" or html[dep_act_index-8:dep_act_index-2] == "table)":
-                    arr_act = -2
-                    dep_act = -2
-                    
+                    if (not update) or rt_flag > 2:
+                        arr_act = -2
+                        dep_act = -2
+                    else:
+                        rt_flag += 1
+                else:
+                    rt_flag = 0
                 if arr_act == '<spa':
                     arr_act = -2
 
@@ -302,6 +306,7 @@ def train_info(Data, train_code, update = False):
                     if html[arr_act_index+4:arr_act_index+9] == "&frac":
                         arr_act = arr_act + whichfrac(html[arr_act_index+9:arr_act_index+11])
                         
+                
                 if not on_line:
                     calls_rt.append([])
                      
@@ -310,7 +315,7 @@ def train_info(Data, train_code, update = False):
                         add = False
                     if int(calls_rt[-1][-1][1]) > arr_act and arr_act >= 0:
                         add = False
-                    if int(calls_rt[-1][-1][2]) > arr_act + 60 and arr_act >= 0:  #This is dubious -- but deal with it later
+                    if int(calls_rt[-1][-1][2]) > arr_act + 120 and arr_act >= 0:  #This is dubious -- but deal with it later
                         add = False                    
                     
                 if arr_act < 0 and dep_act < 0:
@@ -345,7 +350,11 @@ def train_info(Data, train_code, update = False):
 
 def add_train_info(Data, train_code, update = 0, update_index = -1):
     #Just does train info but appends the information
-    calls, calls_rt, ops, headcode = train_info(Data, train_code)
+    if update == 0:
+        calls, calls_rt, ops, headcode = train_info(Data, train_code, update = True)
+    else:
+        calls, calls_rt, ops, headcode = train_info(Data, train_code, update = True)
+        
     if update == 0:   #append to a nothing
         for c in range(len(calls)):
             if len(calls[c]) > 1:
