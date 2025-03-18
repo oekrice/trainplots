@@ -50,7 +50,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
     elif operator == 'ME':
         colour = 'yellow'
     elif operator == 'LM':
-        colour = 'lightgreen'
+        colour = 'mediumseagreen'
     elif operator == 'AW':
         colour = 'red'
     elif operator == 'SE':
