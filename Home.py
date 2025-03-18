@@ -112,7 +112,7 @@ def run():
             There are two options to specify the route -- either specify start and end stations or use a specific RTT train code from some point in the last week. \\
             All the trains along the route at any point on the plotting day will be found, and all their timing data. This can be quite slow. \\
             Various plotting parameters can be set, but the time range is limited if plotting live trains. \\
-            By deafult both scheduled and actual timings are shows, the latter less transparently than the former. \\
+            By default both scheduled and actual timings are shows, the latter less transparently than the former. \\
             Large plots will be compressed in the browser, but full resolution images can be downloaded.  \\
             Behold -- Newcastle to York on the 18th March:
             """
