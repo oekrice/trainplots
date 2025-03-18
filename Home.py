@@ -16,7 +16,7 @@ import streamlit as st
 from streamlit.logger import get_logger
 
 import datetime
-from functions import find_line_info, station_name, station_code, find_all_trains, find_train_data, find_trains_pts, update_train_data
+from functions import find_line_info, train_info, station_name, station_code, find_all_trains, find_train_data, find_trains_pts, update_train_data
 from plot_functions import plot_trains
 import time
 import os
@@ -121,8 +121,11 @@ def run():
     def get_data():
         Data = all_data()
         return Data
+
+
         
     Data = get_data()
+    
     #Establish the first train to use
     if select_type == "RTT Number":
         rtt_code = st.text_input("Input RTT code (eg. P13795)")
@@ -231,6 +234,13 @@ def run():
         
     Data.plot_date = st.date_input("Date to plot", value ="today", min_value = datetime.date.today() - datetime.timedelta(days = 7), max_value = datetime.date.today(), on_change = reset_trains)
     
+    '''
+    test_code = 'C71410'
+    #Test train info function
+    Data.linepts = st.session_state.linepts
+    train_info(Data, test_code, update = True)
+    '''
+
     if st.button("Find all trains on this route on this day", disabled = st.session_state.all_trains != None):
         st.write("Finding all trains...")
 
@@ -294,9 +304,11 @@ def run():
                 
             st.form_submit_button("Update Plot")
 
-        if st.button("Update train times"):
+        if st.button("Update to live times"):
             #Need to update trains then do the above, but specify a load of the parameters
             update_train_data(Data)
+            dot_time = datetime.datetime.now()
+            Paras.dot_time = dot_time.hour*60 + dot_time.minute
         plot_trains(Paras, save = True)   #Saves to a temporary location by default
         fname = './tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
         fname_local = '%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
