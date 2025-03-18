@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline
 import streamlit as st
 from matplotlib.collections import LineCollection
+from threading import RLock
 
 def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors, rt_flag = False):
     #Adds an individual train to the plot
@@ -314,119 +315,123 @@ def plot_trains(Paras, counter = -1, save = False):
     if ysize*xsize*Paras.aspect > 1000:
         st.error("Plot is too large... Try a shorter route or smaller time window")
         st.stop()
-    fig = plt.figure(figsize = (xsize*Paras.aspect,ysize))
-    
-    #Establish y axis distances/labels. If no distance data just use integers. 
-    #Shame that distance data isn't universal but meh. Could perhaps bodge later?
-    yticks = []
-    ylabels = []
-    
-    if  st.session_state.linedists is None:
-        #linedists_plot = np.arange(len(st.session_state.linepts))
-        linedists_plot = st.session_state.linetimes
-    else:
-        linedists_plot = st.session_state.linedists
-
-    for i in range(len(st.session_state.linepts)):
-        if len(st.session_state.linepts[i]) == 3 and st.session_state.linepts[i][0] != 'X':
-            ylabels.append(st.session_state.linepts[i])
-            yticks.append(linedists_plot[i])
-            #plt.plot([-60,25*60], [linedists[i], linedists[i]], c= 'grey', alpha = 1.0, linewidth = 1.0)    
-            
-    plt.gca().set_yticks(yticks)
-    # Set ticks labels for x-axis
-    plt.gca().set_yticklabels(ylabels, fontsize = 8.0)   
-    
-    tlabels = []
-    
-    if False:  #Plot hours
-        plt.gca().set_xticks(np.linspace(0,1440,25))
-
-        for i in range(25):
-            tlabels.append('%d:00' % i)
-    else:
-        plt.gca().set_xticks(np.linspace(0,1440,4*24+1))
-
-        for i in range(24):
-            tlabels.append('%02d:00' % i)
-            for j in range(3):
-                tlabels.append('%02d:%02d' % (i, j * 15 + 15))
-        tlabels.append('%02d:00' % 0)
-
-    plt.gca().set_xticklabels(tlabels, rotation='vertical')
-    
-    def startend(calls_test):
-        #Gives start and end time for the set of calls
-        start = calls_test[0][2]%100 + 60*(calls_test[0][2]//100) 
-        if calls_test[-1][2] == -2:
-            end = calls_test[-1][1]%100 + 60*( calls_test[-1][1]//100)
-        else:
-            end = calls_test[-1][2]%100 + 60*( calls_test[-1][2]//100)
-        return start,end
         
-    alllines = []; allcolors = []
-    if Paras.plot_wtt:
-        for k in range(len(st.session_state.allcalls)):
-            
-            if st.session_state.linepts.index(st.session_state.allcalls[k][-1][0]) > st.session_state.linepts.index(st.session_state.allcalls[k][0][0]):
-                up = False
-            else:
-                up = True
+    _lock = RLock()
+    
+    with _lock:
+        fig = plt.figure(figsize = (xsize*Paras.aspect,ysize))
+        
+        #Establish y axis distances/labels. If no distance data just use integers. 
+        #Shame that distance data isn't universal but meh. Could perhaps bodge later?
+        yticks = []
+        ylabels = []
+        
+        if  st.session_state.linedists is None:
+            #linedists_plot = np.arange(len(st.session_state.linepts))
+            linedists_plot = st.session_state.linetimes
+        else:
+            linedists_plot = st.session_state.linedists
+    
+        for i in range(len(st.session_state.linepts)):
+            if len(st.session_state.linepts[i]) == 3 and st.session_state.linepts[i][0] != 'X':
+                ylabels.append(st.session_state.linepts[i])
+                yticks.append(linedists_plot[i])
+                #plt.plot([-60,25*60], [linedists[i], linedists[i]], c= 'grey', alpha = 1.0, linewidth = 1.0)    
                 
-            start, end = startend(st.session_state.allcalls[k])
-            
-            if (up and Paras.plot_up) or (not up and Paras.plot_down):
-                if Paras.xmin < end and Paras.xmax > start:
-                    if st.session_state.allops[k] in Paras.plot_operators and int(st.session_state.allheads[k][:1]) in Paras.plot_heads:
-                        plot_train(st.session_state.allcalls[k], st.session_state.allops[k], st.session_state.allheads[k], 1e6, fig, alllines, allcolors, rt_flag = not(Paras.plot_rt))
-    
-        if not(Paras.plot_rt):
-            line_collection = LineCollection(alllines, colors=allcolors, linewidths=2.5, alpha = 1.0)
-        else:
-            line_collection = LineCollection(alllines, colors=allcolors, linewidths=2.5, alpha = 0.1)
-        plt.gca().add_collection(line_collection)
-
-    alllines = []; allcolors = []
-    if Paras.plot_rt:
-        #print('_________________________-')
-        for k in range(len(st.session_state.allcalls_rt)):
-            st.session_state.diag_flag = False
-            start = 'TRHFGDFGB'
-            mint = 1520; maxt = 1530
-            if st.session_state.allcalls_rt[k][0][0] == start:
-                if st.session_state.allcalls_rt[k][0][2] > mint and st.session_state.allcalls_rt[k][0][2] < maxt:
-                    print(st.session_state.allcalls_rt[k])
-                    st.session_state.diag_flag = True
-            
-            if st.session_state.linepts.index(st.session_state.allcalls_rt[k][-1][0]) > st.session_state.linepts.index(st.session_state.allcalls_rt[k][0][0]):
-                up = False
-            else:
-                up = True
-    
-            start, end = startend(st.session_state.allcalls_rt[k])
-            
-
-            if (up and Paras.plot_up) or (not up and Paras.plot_down):
-            #if allops_rt[k] == 'ZZ' and allcalls_rt[k][0][2] > 300 and allcalls_rt[k][0][2] < 330:
-                if Paras.xmin < end and Paras.xmax > start:
-                    if (st.session_state.allops_rt[k] in Paras.plot_operators) and (int(st.session_state.allheads_rt[k][:1]) in Paras.plot_heads):
-
-                        plot_train(st.session_state.allcalls_rt[k], st.session_state.allops_rt[k], st.session_state.allheads_rt[k], dot_time, fig, alllines, allcolors, rt_flag = True)
-        line_collection = LineCollection(alllines, colors=allcolors, linewidths=2.5, alpha = 1.0)
-        plt.gca().add_collection(line_collection)
-            #plot_train(linepts, linedists, allcalls_rt[k], allops_rt[k], allheads_rt[k], dot_time, fig, rt_flag = True)
-
+        plt.gca().set_yticks(yticks)
+        # Set ticks labels for x-axis
+        plt.gca().set_yticklabels(ylabels, fontsize = 8.0)   
         
-    plt.xlim(Paras.xmin,Paras.xmax)
-    tickrange = yticks[-1] - yticks[0]
-    plt.ylim(yticks[-1] + tickrange*0.1, yticks[0] - tickrange*0.1)
-    if Paras.reverse:
-        plt.gca().invert_yaxis()
-
-    st.pyplot(fig)
-    if save:
-        plt.savefig('./tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1]), dpi = 150)
-    plt.clf()
-    plt.close()
+        tlabels = []
+        
+        if False:  #Plot hours
+            plt.gca().set_xticks(np.linspace(0,1440,25))
+    
+            for i in range(25):
+                tlabels.append('%d:00' % i)
+        else:
+            plt.gca().set_xticks(np.linspace(0,1440,4*24+1))
+    
+            for i in range(24):
+                tlabels.append('%02d:00' % i)
+                for j in range(3):
+                    tlabels.append('%02d:%02d' % (i, j * 15 + 15))
+            tlabels.append('%02d:00' % 0)
+    
+        plt.gca().set_xticklabels(tlabels, rotation='vertical')
+        
+        def startend(calls_test):
+            #Gives start and end time for the set of calls
+            start = calls_test[0][2]%100 + 60*(calls_test[0][2]//100) 
+            if calls_test[-1][2] == -2:
+                end = calls_test[-1][1]%100 + 60*( calls_test[-1][1]//100)
+            else:
+                end = calls_test[-1][2]%100 + 60*( calls_test[-1][2]//100)
+            return start,end
+            
+        alllines = []; allcolors = []
+        if Paras.plot_wtt:
+            for k in range(len(st.session_state.allcalls)):
+                
+                if st.session_state.linepts.index(st.session_state.allcalls[k][-1][0]) > st.session_state.linepts.index(st.session_state.allcalls[k][0][0]):
+                    up = False
+                else:
+                    up = True
+                    
+                start, end = startend(st.session_state.allcalls[k])
+                
+                if (up and Paras.plot_up) or (not up and Paras.plot_down):
+                    if Paras.xmin < end and Paras.xmax > start:
+                        if st.session_state.allops[k] in Paras.plot_operators and int(st.session_state.allheads[k][:1]) in Paras.plot_heads:
+                            plot_train(st.session_state.allcalls[k], st.session_state.allops[k], st.session_state.allheads[k], 1e6, fig, alllines, allcolors, rt_flag = not(Paras.plot_rt))
+        
+            if not(Paras.plot_rt):
+                line_collection = LineCollection(alllines, colors=allcolors, linewidths=2.5, alpha = 1.0)
+            else:
+                line_collection = LineCollection(alllines, colors=allcolors, linewidths=2.5, alpha = 0.1)
+            plt.gca().add_collection(line_collection)
+    
+        alllines = []; allcolors = []
+        if Paras.plot_rt:
+            #print('_________________________-')
+            for k in range(len(st.session_state.allcalls_rt)):
+                st.session_state.diag_flag = False
+                start = 'TRHFGDFGB'
+                mint = 1520; maxt = 1530
+                if st.session_state.allcalls_rt[k][0][0] == start:
+                    if st.session_state.allcalls_rt[k][0][2] > mint and st.session_state.allcalls_rt[k][0][2] < maxt:
+                        print(st.session_state.allcalls_rt[k])
+                        st.session_state.diag_flag = True
+                
+                if st.session_state.linepts.index(st.session_state.allcalls_rt[k][-1][0]) > st.session_state.linepts.index(st.session_state.allcalls_rt[k][0][0]):
+                    up = False
+                else:
+                    up = True
+        
+                start, end = startend(st.session_state.allcalls_rt[k])
+                
+    
+                if (up and Paras.plot_up) or (not up and Paras.plot_down):
+                #if allops_rt[k] == 'ZZ' and allcalls_rt[k][0][2] > 300 and allcalls_rt[k][0][2] < 330:
+                    if Paras.xmin < end and Paras.xmax > start:
+                        if (st.session_state.allops_rt[k] in Paras.plot_operators) and (int(st.session_state.allheads_rt[k][:1]) in Paras.plot_heads):
+    
+                            plot_train(st.session_state.allcalls_rt[k], st.session_state.allops_rt[k], st.session_state.allheads_rt[k], dot_time, fig, alllines, allcolors, rt_flag = True)
+            line_collection = LineCollection(alllines, colors=allcolors, linewidths=2.5, alpha = 1.0)
+            plt.gca().add_collection(line_collection)
+                #plot_train(linepts, linedists, allcalls_rt[k], allops_rt[k], allheads_rt[k], dot_time, fig, rt_flag = True)
+    
+            
+        plt.xlim(Paras.xmin,Paras.xmax)
+        tickrange = yticks[-1] - yticks[0]
+        plt.ylim(yticks[-1] + tickrange*0.1, yticks[0] - tickrange*0.1)
+        if Paras.reverse:
+            plt.gca().invert_yaxis()
+    
+        st.pyplot(fig)
+        if save:
+            plt.savefig('./tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1]), dpi = 150)
+        plt.clf()
+        plt.close()
     #plt.close()
     
