@@ -353,7 +353,7 @@ def train_info(Data, train_code, update = False):
 def add_train_info(Data, train_code, update = 0, update_index = -1):
     #Just does train info but appends the information
     if update == 0:
-        calls, calls_rt, ops, headcode = train_info(Data, train_code, update = False)
+        calls, calls_rt, ops, headcode = train_info(Data, train_code, update = True)
     else:
         calls, calls_rt, ops, headcode = train_info(Data, train_code, update = True)
         

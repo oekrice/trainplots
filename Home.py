@@ -69,7 +69,12 @@ if "found_alltrains" not in st.session_state:
     st.session_state.found_alltrains = False
 if "diag_flag" not in st.session_state:
     st.session_state.diag_flag = False
-    
+if "update_time" not in st.session_state:
+    st.session_state.update_time = False
+if "refresh" not in st.session_state:
+    st.session_state.refresh = False
+if "paras_chosen" not in st.session_state:
+    st.session_state.paras_chosen = True
     
 def reset_route():
     st.session_state.all_trains = None
@@ -109,9 +114,11 @@ def run():
 
     st.markdown(
         """
-        Making line plots of train positions, using live data from RealTimeTrains.
-        Choose what to plot either by specifying a train on a certain date, or two stations which have trains running between them.
-        'Live' features to follow when I can figure out a way of speeding certain things up.
+        Tool to plot the locations of trains on a given route, either in real-time or at any point over the last week, using data from RealTimeTrains. \\
+        There are two options to specify the route -- either specify start and end stations or use a specific RTT train code from the last week. \\
+        All the trains along the route at any point on the plotting day will be found, and all their timing data. This can be quite slow. \\
+        Various plotting parameters can be set, but the time range is limited if plotting live trains. \\
+        Large plots will be compressed in the browser, but full resolution images can be downloaded. 
         """
     )
 
@@ -218,7 +225,7 @@ def run():
     elif st.session_state.linedists is None:
         st.write("Suitable route found, but with no distance information. Plot y axes may be a little strange.")
     else:
-        st.write("Suitable route and distance information found for this choice.")
+        st.write("Suitable route and distance information found for this choice. If this isn't the route you'd like, specify a train instead.")
 
     if st.session_state.linedists is not None:
         st.session_state.linedists = st.session_state.linedists - np.min(st.session_state.linedists)
@@ -234,13 +241,6 @@ def run():
         
     Data.plot_date = st.date_input("Date to plot", value ="today", min_value = datetime.date.today() - datetime.timedelta(days = 7), max_value = datetime.date.today(), on_change = reset_trains)
     
-    '''
-    test_code = 'C71410'
-    #Test train info function
-    Data.linepts = st.session_state.linepts
-    train_info(Data, test_code, update = True)
-    '''
-
     if st.button("Find all trains on this route on this day", disabled = st.session_state.all_trains != None):
         st.write("Finding all trains...")
 
@@ -253,8 +253,8 @@ def run():
         st.write(str(len(st.session_state.all_trains)), ' trains found')
         
     #Train IDs found. Attempt to find info for them...
-    if st.button("Find all train info (may take a minute or two)", disabled = st.session_state.found_alltrains):
-        st.write("Finding train info...")
+    if st.button("Find all train times (may take a minute or two)", disabled = st.session_state.found_alltrains):
+        st.write("Finding train times...")
         find_train_data(Data)
         st.rerun()
         
@@ -266,6 +266,9 @@ def run():
         st.stop()
     else:
         st.write("Train data found, with ", str(len(st.session_state.allops)), "trains on this route at some point")
+        istoday = Data.plot_date == datetime.date.today()
+        refresh_flag = st.checkbox("Plot live trains (may not work well for long or busy routes)", disabled = not istoday, value = st.session_state.refresh)
+
         with st.form("Plot stuff"):
             with st.expander("Choose plot parameters"):
                 if st.session_state.timeref is None:
@@ -293,29 +296,50 @@ def run():
     
                 init_minval = max(t0, st.session_state.timeref - datetime.timedelta(hours = 2))
                 init_maxval = min(t1, st.session_state.timeref + datetime.timedelta(hours = 2))
-                trange_min, trange_max = st.slider("Time range:", min_value = t0, max_value = t1, value = (init_minval, init_maxval), format = "HH:mm")
-
+                trange_min, trange_max = st.slider("Time range (if not showing live ttrains):", min_value = t0, max_value = t1, value = (init_minval, init_maxval), format = "HH:mm")
                 Paras.xmin = trange_min.hour*60 + trange_min.minute; Paras.xmax = trange_max.hour*60 + trange_max.minute
-                if Data.plot_date == datetime.date.today():
-                    dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = st.session_state.timeref, format = "HH:mm")
+                if istoday:
+                    #dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = st.session_state.timeref, format = "HH:mm")
+                    dot_time = st.session_state.timeref 
+                    Paras.dot_time = dot_time.hour*60 + dot_time.minute - 1
                 else:
-                    dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = t1, format = "HH:mm")
-                Paras.dot_time = dot_time.hour*60 + dot_time.minute
+                    #dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = t1, format = "HH:mm")
+                    dot_time = t1
+                    Paras.dot_time = dot_time.hour*60 + dot_time.minute
                 
             st.form_submit_button("Update Plot")
 
-        if st.button("Update to live times"):
+        if abs(Paras.xmin - max(0, Paras.dot_time - 90)) > 1.0:
+            st.session_state.paras_chosen = True
+                
+        if refresh_flag:
             #Need to update trains then do the above, but specify a load of the parameters
             update_train_data(Data)
             dot_time = datetime.datetime.now()
             Paras.dot_time = dot_time.hour*60 + dot_time.minute
+            Paras.xmin = max(0, Paras.dot_time - 90); Paras.xmax = min(Paras.dot_time + 90, 60*24)
+            st.session_state.paras_chosen = False
+
+        elif not st.session_state.paras_chosen:   #Do one last time
+            dot_time = datetime.datetime.now()
+            Paras.dot_time = dot_time.hour*60 + dot_time.minute
+            Paras.xmin = max(0, Paras.dot_time - 90); Paras.xmax = min(Paras.dot_time + 90, 60*24)
+            update_train_data(Data)
+            dot_time = datetime.datetime.now()
+            
         plot_trains(Paras, save = True)   #Saves to a temporary location by default
         fname = './tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
         fname_local = '%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
         with open(fname, "rb") as img:
             st.download_button(label="Download high-resolution plot (may not be fast...)", file_name = fname_local,  data=img,mime="image/png")
         os.system('rm -r %s' % fname)        
+        st.session_state.update_time = time.time()
 
+        if refresh_flag:
+            while time.time() - st.session_state.update_time < 30.0:
+                time.sleep(1.0)
+            st.rerun()
+            
 if __name__ == "__main__":
     run()
 
