@@ -299,9 +299,6 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
 
     return 
 
-
-
-
 def plot_trains(Paras, counter = -1, save = False):
     
     dot_time = Paras.dot_time#xmin + 0.75*(xmax - xmin)
@@ -313,7 +310,12 @@ def plot_trains(Paras, counter = -1, save = False):
         
     ysize = max(5, yrange/10)
     xsize = max(7.5, (Paras.xmax-Paras.xmin)/12.5)
+    
+    if ysize*xsize*Paras.aspect > 1000:
+        st.error("Plot is too large... Try a shorter route or smaller time window")
+        st.stop()
     fig = plt.figure(figsize = (xsize*Paras.aspect,ysize))
+    
     #Establish y axis distances/labels. If no distance data just use integers. 
     #Shame that distance data isn't universal but meh. Could perhaps bodge later?
     yticks = []
