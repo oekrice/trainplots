@@ -132,6 +132,10 @@ def train_info(Data, train_code, update = False):
         except:   #Try to go for the day before? Trains might have happened before midnight
             try:
                 url = 'https://www.realtimetrains.co.uk/service/gb-nr:' + train_code + '/' + str(Data.plot_yesterday) + '/detailed'
+                page = urlopen(url)
+                html_bytes = page.read()    
+                html = html_bytes.decode("utf-8")
+                go = False
             except:
                 return [],[],[],[]
         
@@ -286,7 +290,7 @@ def train_info(Data, train_code, update = False):
                 #This stop isn't actually here (the train didn't run)
                 #BUT if doing the update, DO include these!                    
                 if html[dep_act_index-8:dep_act_index-2] == "(RMME)" or html[dep_act_index-8:dep_act_index-2] == "table)":
-                    if (not update) or rt_flag > 2:
+                    if (not update) or rt_flag > 1:
                         arr_act = -2
                         dep_act = -2
                     else:
@@ -354,7 +358,6 @@ def add_train_info(Data, train_code, update = 0, update_index = -1):
         calls, calls_rt, ops, headcode = train_info(Data, train_code, update = True)
     else:
         calls, calls_rt, ops, headcode = train_info(Data, train_code, update = True)
-        
     if update == 0:   #append to a nothing
         for c in range(len(calls)):
             if len(calls[c]) > 1:
@@ -405,7 +408,7 @@ def update_train_data(Data):
     threads = []
     for k, calls in enumerate(st.session_state.allcalls):
         start, end = startend(st.session_state.allcalls[k])
-        if current_minutes < end + 30 and current_minutes > start - 30:  #These are trains which need updating            
+        if current_minutes < end + 10 and current_minutes > start - 10:  #These are trains which need updating            
             #print(k, st.session_state.allheads[k], start , end, current_minutes)
             x = threading.Thread(target=add_train_info, args=(Data, st.session_state.allcodes[k], 1, k), daemon = False)
             threads.append(x)
@@ -415,7 +418,7 @@ def update_train_data(Data):
         x.join()
     for k, calls in enumerate(st.session_state.allcalls_rt):
         start, end = startend(st.session_state.allcalls_rt[k])
-        if current_minutes < end + 30 and current_minutes > start - 30:  #These are trains which need updating            
+        if current_minutes < end + 10 and current_minutes > start - 10:  #These are trains which need updating            
             #print(k, st.session_state.allheads[k], start , end, current_minutes)
             x = threading.Thread(target=add_train_info, args=(Data, st.session_state.allcodes_rt[k], 2, k), daemon = False)
             threads.append(x)
@@ -455,7 +458,7 @@ def find_train_data(Data):
         if end_ind == len(st.session_state.all_trains[:]):
             go = False
         start_ind = start_ind + lump_size
-        
+
         progress_bar.progress(end_ind/len(st.session_state.all_trains[:]), text = "%d%% complete" % (100*(end_ind/len(st.session_state.all_trains[:]))))
     st.session_state.found_alltrains = True
 

@@ -89,6 +89,8 @@ def reset_route():
     st.session_state.stat_selected_1 = None
     st.session_state.found_alltrains = False
     st.session_state.refresh = False
+    st.session_state.paras_chosen = True
+    st.session_state.update_time = False
 
 def reset_trains():
     st.session_state.all_trains = None
@@ -100,6 +102,8 @@ def reset_trains():
     st.session_state.allheads_rt = None
     st.session_state.found_alltrains = False
     st.session_state.refresh = False
+    st.session_state.paras_chosen = True
+    st.session_state.update_time = False
 
 if not os.path.exists('./tmp/'):
     os.mkdir('./tmp/')
@@ -122,10 +126,12 @@ def run():
             All the trains along the route at any point on the plotting day will be found, and all their timing data. This can be quite slow. \\
             Various plotting parameters can be set, but the time range is limited if plotting live trains. \\
             By deafult both scheduled and actual timings are shows, the latter less transparently than the former. \\
-            Large plots will be compressed in the browser, but full resolution images can be downloaded. 
+            Large plots will be compressed in the browser, but full resolution images can be downloaded.  \\
+            Behold -- Newcastle to York on the 18th March:
             """
         )
-            
+        st.image("NCL_YRK.png")
+
     with st.expander("Limitations and known bugs"):
         st.markdown(
             """
@@ -134,7 +140,8 @@ def run():
             Occasionally the RTT data is input strangely enough (with VST or STP workings usually) that trains will appear in completely random places. I've tried to catch all of these but it's hard to stop them all. \\
             If a train takes a suspiciously long time to pass between waypoints, I will assume it has stopped for a bit even if it didn't in reality. This can make it seem like trains are on top of each other in the middle of nowhere when actually they were stopped some distance apart.  \\
             Trains not detected initially will not show up on the live plots if they subsequently become a thing. If this is important just find all the trains again and they'll show up. \\
-            Operator colour schemes are decided by me and I'm apparently wrong about some of them. 
+            Operator colour schemes are decided by me and I'm apparently wrong about some of them. \\
+            On manually-signalled lines trains sometimes don't get logged so it looks like they don't stop anywhere
             """
         )
     
@@ -277,6 +284,9 @@ def run():
         find_train_data(Data)
         st.rerun()
         
+    def reset_time():
+        st.session_state.update_time = 0
+
     class plot_paras():
         def __init__(self):
             pass
@@ -319,14 +329,14 @@ def run():
                 Paras.xmin = trange_min.hour*60 + trange_min.minute; Paras.xmax = trange_max.hour*60 + trange_max.minute
                 if istoday:
                     #dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = st.session_state.timeref, format = "HH:mm")
-                    dot_time = st.session_state.timeref 
+                    dot_time = datetime.datetime.now() 
                     Paras.dot_time = dot_time.hour*60 + dot_time.minute - 1
                 else:
                     #dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = t1, format = "HH:mm")
                     dot_time = t1
                     Paras.dot_time = dot_time.hour*60 + dot_time.minute
                 
-            st.form_submit_button("Update Plot")
+            st.form_submit_button("Update Plot", on_click = reset_time)
 
         if abs(Paras.xmin - max(0, Paras.dot_time - 90)) > 1.0:
             st.session_state.paras_chosen = True
