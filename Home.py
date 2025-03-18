@@ -97,8 +97,8 @@ if not os.path.exists('./tmp/'):
     
 def run():
     st.set_page_config(
-        page_title="Home",
-        page_icon="🏠",
+        page_title="Train Location Plotting",
+        page_icon="🛤️",
     )
 
     st.write("# Train Location Plotting")
