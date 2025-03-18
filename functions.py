@@ -128,14 +128,12 @@ def train_info(Data, train_code, update = False):
             page = urlopen(url)
             html_bytes = page.read()    
             html = html_bytes.decode("utf-8")
-
             go = False
-        except:
-            if failcount > 2:
-                return [], [], [], []
-            else:
-                time.sleep(0.05)
-                failcount += 1
+        except:   #Try to go for the day before? Trains might have happened before midnight
+            try:
+                url = 'https://www.realtimetrains.co.uk/service/gb-nr:' + train_code + '/' + str(Data.plot_yesterday) + '/detailed'
+            except:
+                return [],[],[],[]
         
     find_text = "train-operator"
     title_index = html.find(find_text) + len(find_text) + 2
@@ -148,7 +146,7 @@ def train_info(Data, train_code, update = False):
     headcode = html[title_index:title_index+4]
 
     if headcode == "0B00":
-        #Is actually a bus
+        #Is actually a bus. Don't plot.
         return [], [], [], []
         
     def whichfrac(string):

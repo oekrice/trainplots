@@ -88,6 +88,7 @@ def reset_route():
     st.session_state.linedists = None
     st.session_state.stat_selected_1 = None
     st.session_state.found_alltrains = False
+    st.session_state.refresh = False
 
 def reset_trains():
     st.session_state.all_trains = None
@@ -98,7 +99,8 @@ def reset_trains():
     st.session_state.allheads = None
     st.session_state.allheads_rt = None
     st.session_state.found_alltrains = False
-    
+    st.session_state.refresh = False
+
 if not os.path.exists('./tmp/'):
     os.mkdir('./tmp/')
     
@@ -112,15 +114,30 @@ def run():
 
     #st.sidebar.success("Select a demo above.")
 
-    st.markdown(
-        """
-        Tool to plot the locations of trains on a given route, either in real-time or at any point over the last week, using data from RealTimeTrains. \\
-        There are two options to specify the route -- either specify start and end stations or use a specific RTT train code from the last week. \\
-        All the trains along the route at any point on the plotting day will be found, and all their timing data. This can be quite slow. \\
-        Various plotting parameters can be set, but the time range is limited if plotting live trains. \\
-        Large plots will be compressed in the browser, but full resolution images can be downloaded. 
-        """
-    )
+    with st.expander("What this is and how to use it"):
+        st.markdown(
+            """
+            This is a tool to plot the locations of trains on a given route, either in real-time or at any point over the last week, using data from RealTimeTrains. \\
+            There are two options to specify the route -- either specify start and end stations or use a specific RTT train code from some point in the last week. \\
+            All the trains along the route at any point on the plotting day will be found, and all their timing data. This can be quite slow. \\
+            Various plotting parameters can be set, but the time range is limited if plotting live trains. \\
+            By deafult both scheduled and actual timings are shows, the latter less transparently than the former. \\
+            Large plots will be compressed in the browser, but full resolution images can be downloaded. 
+            """
+        )
+            
+    with st.expander("Limitations and known bugs"):
+        st.markdown(
+            """
+            The plots attempt to find smooth curves which fit the given timing data. Sometimes the data is not quite right and this causes strange things to happen, such as trains travelling backwards for a bit. \\
+            Trains will go missing around midnight sometimes. This is fixable but a lot of effort. \\
+            Occasionally the RTT data is input strangely enough (with VST or STP workings usually) that trains will appear in completely random places. I've tried to catch all of these but it's hard to stop them all. \\
+            If a train takes a suspiciously long time to pass between waypoints, I will assume it has stopped for a bit even if it didn't in reality. This can make it seem like trains are on top of each other in the middle of nowhere when actually they were stopped some distance apart.  \\
+            Trains not detected initially will not show up on the live plots if they subsequently become a thing. If this is important just find all the trains again and they'll show up. \\
+            Operator colour schemes are decided by me and I'm apparently wrong about some of them. 
+            """
+        )
+    
 
     select_type = st.pills("Specify stations or specific train using RTT number?", options = ["Stations", "RTT Number"], default = "Stations")
     
@@ -240,6 +257,8 @@ def run():
             st.write(np.array(st.session_state.linepts))
         
     Data.plot_date = st.date_input("Date to plot", value ="today", min_value = datetime.date.today() - datetime.timedelta(days = 7), max_value = datetime.date.today(), on_change = reset_trains)
+    Data.plot_yesterday =  datetime.date.today() - datetime.timedelta(days = 1)
+
     
     if st.button("Find all trains on this route on this day", disabled = st.session_state.all_trains != None):
         st.write("Finding all trains...")
@@ -319,13 +338,6 @@ def run():
             Paras.dot_time = dot_time.hour*60 + dot_time.minute
             Paras.xmin = max(0, Paras.dot_time - 90); Paras.xmax = min(Paras.dot_time + 90, 60*24)
             st.session_state.paras_chosen = False
-
-        elif not st.session_state.paras_chosen:   #Do one last time
-            dot_time = datetime.datetime.now()
-            Paras.dot_time = dot_time.hour*60 + dot_time.minute
-            Paras.xmin = max(0, Paras.dot_time - 90); Paras.xmax = min(Paras.dot_time + 90, 60*24)
-            update_train_data(Data)
-            dot_time = datetime.datetime.now()
             
         plot_trains(Paras, save = True)   #Saves to a temporary location by default
         fname = './tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])

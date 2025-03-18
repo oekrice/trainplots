@@ -28,7 +28,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
     elif operator == 'GC':
         colour = 'black'
     elif operator == 'GN':
-        colour = 'pink'
+        colour = 'lightblue'
     elif operator == 'HT':
         colour = 'green'
     elif operator == 'EM':
@@ -82,21 +82,17 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
         #colour = 'black'
     #Determine shape from headcode
     train_type = int(headcode[0])
-    order = 0
     if train_type == 1 or train_type == 9:
         shape = 'D'
-        order = 10
         max_speed = 2.0
         min_speed = 0.5
     elif train_type == 2:
         shape = 'o'
-        order = 2
         max_speed = 1.5
         min_speed = 0.5
 
     elif train_type == 5 or train_type == 3:
         shape = 'p'
-        order = 5
         if train_type == 5:
             max_speed = 2.0
         else:
@@ -105,7 +101,6 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
 
     else:
         shape = 's'
-        order = 8
         max_speed = 1.0
         min_speed = 0.5
 
@@ -118,14 +113,6 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
         
     def plotbit(xls, yls, bc1, bc2, fig, rt_flag, alllines, allcolors):
         
-        #print(tls)
-        if rt_flag:
-            alpha = 1
-            lw = 2.5
-        else:
-            alpha = 0.1
-            lw = 2.5
-            
         res = max(10, 4*int((xls[-1] - xls[0])))   #Points to interpolate in time (smoooooth)
         
         #Check in bounds.
@@ -168,10 +155,6 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
     
 
     if len(call_set) > 1 and call_set[0][2] > 0:
-        if st.session_state.linepts.index(call_set[-1][0]) > st.session_state.linepts.index(call_set[0][0]):
-            up = 1
-        else:
-            up = 0
                                 
         if call_set[0][1] < 0 and call_set[0][2] < 0:
             return
@@ -440,7 +423,7 @@ def plot_trains(Paras, counter = -1, save = False):
 
     st.pyplot(fig)
     if save:
-        plt.savefig('./tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1]), dpi = 200)
+        plt.savefig('./tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1]), dpi = 150)
     plt.clf()
     plt.close()
     #plt.close()
