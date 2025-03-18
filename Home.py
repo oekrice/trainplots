@@ -332,7 +332,7 @@ def run():
             #Need to update trains then do the above, but specify a load of the parameters
             update_train_data(Data)
             dot_time = datetime.datetime.now()
-            Paras.dot_time = dot_time.hour*60 + dot_time.minute
+            Paras.dot_time = dot_time.hour*60 + dot_time.minute + dot_time.second/60.0
             Paras.xmin = max(0, Paras.dot_time - 90); Paras.xmax = min(Paras.dot_time + 90, 60*24)
             st.session_state.paras_chosen = False
             
