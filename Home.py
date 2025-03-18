@@ -312,7 +312,7 @@ def run():
     
                 init_minval = max(t0, st.session_state.timeref - datetime.timedelta(hours = 2))
                 init_maxval = min(t1, st.session_state.timeref + datetime.timedelta(hours = 2))
-                trange_min, trange_max = st.slider("Time range (if not showing live ttrains):", min_value = t0, max_value = t1, value = (init_minval, init_maxval), format = "HH:mm")
+                trange_min, trange_max = st.slider("Time range (if not showing live trains):", min_value = t0, max_value = t1, value = (init_minval, init_maxval), format = "HH:mm")
                 Paras.xmin = trange_min.hour*60 + trange_min.minute; Paras.xmax = trange_max.hour*60 + trange_max.minute
                 if istoday:
                     #dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = st.session_state.timeref, format = "HH:mm")
