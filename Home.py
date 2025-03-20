@@ -285,6 +285,11 @@ def run():
         st.stop()
     else:
         st.write("Train data found, with ", str(len(st.session_state.allops)), "trains on this route at some point")
+
+        if len(st.session_state.allops) == 0:
+            st.error("No trains found on this route")
+            st.stop()
+        
         istoday = Data.plot_date == datetime.date.today()
         
         refresh_flag = st.checkbox("Plot live trains (may not work well for long or busy routes)", disabled = not istoday, value = st.session_state.refresh, on_change = reset_refresh_start)
