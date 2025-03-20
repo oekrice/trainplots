@@ -290,9 +290,6 @@ def run():
         
         refresh_flag = st.checkbox("Plot live trains (may not work well for long or busy routes)", disabled = not istoday, value = st.session_state.refresh, on_change = reset_refresh_start)
 
-        if not refresh_flag:
-            print(st.session_state.linepts[0], 'to', st.session_state.linepts[-1])
-
         if time.time() -  st.session_state.update_start > 300. and refresh_flag:   #Stop updating if it's been going on a while
             st.write('**Live plotting stopped due to time limit. Uncheck and check box to restart.**')
             st.write('**If trains fail to update, please start again... This undesirable feature is due to memory limitations.**')

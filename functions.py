@@ -450,6 +450,7 @@ def find_train_data(Data):
     go = True; start = 0
     Data.linepts = st.session_state.linepts
     start_ind = 0
+    
     while go:
         end_ind = min(start_ind + lump_size, len(st.session_state.all_trains[:]))
         for k, train in enumerate(st.session_state.all_trains[start_ind:end_ind]):
@@ -465,6 +466,7 @@ def find_train_data(Data):
 
         progress_bar.progress(end_ind/len(st.session_state.all_trains[:]), text = "%d%% complete" % (100*(end_ind/len(st.session_state.all_trains[:]))))
     st.session_state.found_alltrains = True
+    print(st.session_state.linepts[0], 'to', st.session_state.linepts[-1])
 
     progress_bar.progress(1.0, text = "All trains found")
     st.session_state.allcalls = Data.allcalls
