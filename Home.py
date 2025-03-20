@@ -142,7 +142,6 @@ def run():
         Data = all_data()
         return Data
 
-
         
     Data = get_data()
     
