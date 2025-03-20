@@ -254,7 +254,6 @@ def run():
     Data.plot_date = st.date_input("Date to plot", value ="today", min_value = datetime.date.today() - datetime.timedelta(days = 7), max_value = datetime.date.today(), on_change = reset_trains)
     Data.plot_yesterday =  datetime.date.today() - datetime.timedelta(days = 1)
 
-    
     if st.button("Find all trains on this route on this day", disabled = st.session_state.all_trains != None):
         st.write("Finding all trains...")
 
