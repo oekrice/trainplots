@@ -421,7 +421,6 @@ def plot_trains(Paras, counter = -1, save = False):
             plt.gca().add_collection(line_collection)
                 #plot_train(linepts, linedists, allcalls_rt[k], allops_rt[k], allheads_rt[k], dot_time, fig, rt_flag = True)
     
-            
         plt.xlim(Paras.xmin,Paras.xmax)
         tickrange = yticks[-1] - yticks[0]
         plt.ylim(yticks[-1] + tickrange*0.1, yticks[0] - tickrange*0.1)
@@ -433,5 +432,12 @@ def plot_trains(Paras, counter = -1, save = False):
             plt.savefig('./tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1]), dpi = 150)
         plt.clf()
         plt.close()
+        
+    
+        del alllines
+        del allcolors
+        del line_collection
+        del linedists_plot
+        
     #plt.close()
     

@@ -62,6 +62,8 @@ if "refresh" not in st.session_state:
     st.session_state.refresh = False
 if "paras_chosen" not in st.session_state:
     st.session_state.paras_chosen = True
+if "update_start" not in st.session_state:
+    st.session_state.update_start = False
     
 def reset_route():
     st.session_state.all_trains = None
@@ -146,7 +148,7 @@ def run():
     
     #Establish the first train to use
     if select_type == "RTT Number":
-        rtt_code = st.text_input("Input RTT code (eg. P13795)")
+        rtt_code = st.text_input("Input RTT code (eg. P13795)", on_change = reset_route)
         if rtt_code == '':
             st.stop()
         init_date = st.date_input("Date this train happened", value ="today", min_value = datetime.date.today() - datetime.timedelta(days = 7), max_value = datetime.date.today(), on_change = reset_route)
@@ -244,7 +246,7 @@ def run():
     if st.session_state.linepts is None:
         st.stop()
 
-    with st.expander("View all waypoints on this route:"):
+    with st.expander("View all waypoints and distances on this route:"):
         if st.session_state.linedists is not None:
             st.write(np.vstack((st.session_state.linepts, st.session_state.linedists)).T)
         else:
@@ -274,6 +276,9 @@ def run():
     def reset_time():
         st.session_state.update_time = 0
 
+    def reset_refresh_start():
+        st.session_state.update_start = time.time()
+        
     class plot_paras():
         def __init__(self):
             pass
@@ -283,7 +288,17 @@ def run():
     else:
         st.write("Train data found, with ", str(len(st.session_state.allops)), "trains on this route at some point")
         istoday = Data.plot_date == datetime.date.today()
-        refresh_flag = st.checkbox("Plot live trains (may not work well for long or busy routes)", disabled = not istoday, value = st.session_state.refresh)
+        
+        refresh_flag = st.checkbox("Plot live trains (may not work well for long or busy routes)", disabled = not istoday, value = st.session_state.refresh, on_change = reset_refresh_start)
+
+        if not refresh_flag:
+            print(st.session_state.linepts[0], 'to', st.session_state.linepts[-1])
+
+        if time.time() -  st.session_state.update_start > 300. and refresh_flag:   #Stop updating if it's been going on a while
+            st.write('**Live plotting stopped due to time limit. Uncheck and check box to restart.**')
+            st.write('**If trains fail to update, please start again... This undesirable feature is due to memory limitations.**')
+            st.session_state.refresh = False
+            refresh_flag = False
 
         with st.form("Plot stuff"):
             with st.expander("Choose plot parameters"):
@@ -314,6 +329,8 @@ def run():
                 init_maxval = min(t1, st.session_state.timeref + datetime.timedelta(hours = 2))
                 trange_min, trange_max = st.slider("Time range (if not showing live trains):", min_value = t0, max_value = t1, value = (init_minval, init_maxval), format = "HH:mm")
                 Paras.xmin = trange_min.hour*60 + trange_min.minute; Paras.xmax = trange_max.hour*60 + trange_max.minute
+                Paras.xmin = min(Paras.xmin, 24*60 - 30)
+                Paras.xmax = max(Paras.xmax, Paras.xmin + 30)
                 if istoday:
                     #dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = st.session_state.timeref, format = "HH:mm")
                     dot_time = datetime.datetime.now() 
@@ -336,12 +353,23 @@ def run():
             Paras.xmin = max(0, Paras.dot_time - 90); Paras.xmax = min(Paras.dot_time + 90, 60*24)
             st.session_state.paras_chosen = False
             
-        plot_trains(Paras, save = True)   #Saves to a temporary location by default
+        
+        try:
+            plot_trains(Paras, save = True)   #Saves to a temporary location by default
+        except:
+            st.error("Plotting failed for some reason... Sorry. Trying again in a second.")
+            time.sleep(1.0)
+            st.rerun()
+            
+        del Paras   #Try and do some clearing up...
+        del Data
+
         fname = './tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
         fname_local = '%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
-        with open(fname, "rb") as img:
-            st.download_button(label="Download high-resolution plot (may not be fast...)", file_name = fname_local,  data=img,mime="image/png")
-        os.system('rm -r %s' % fname)        
+        if os.path.exists(fname):
+            with open(fname, "rb") as img:
+                st.download_button(label="Download high-resolution plot (may not be fast...)", file_name = fname_local,  data=img,mime="image/png")
+            os.system('rm -r %s' % fname)        
         st.session_state.update_time = time.time()
 
         if refresh_flag:
@@ -349,6 +377,8 @@ def run():
                 time.sleep(1.0)
             st.rerun()
             
+        del img
+        
 if __name__ == "__main__":
     run()
 

@@ -51,6 +51,8 @@ def find_trains_pts(Data, init_date, start_code, end_code):
             if testdists is not None:
                 found2 = True
             goodcode = code
+    del all_trains
+    del html
     return goodcode, testpts, testdists
 
 #@st.cache_data
@@ -116,6 +118,7 @@ def find_line_info(url, init = False, unspecified = False):
         linedists = None
     if len(linepts) == 0:
         linepts = None
+    del html
     return linepts, linedists
 
 def train_info(Data, train_code, update = False):
@@ -350,6 +353,7 @@ def train_info(Data, train_code, update = False):
         if flag:
             flag = False
 
+    del html
     return calls, calls_rt, operator, headcode
 
 def add_train_info(Data, train_code, update = 0, update_index = -1):
@@ -481,9 +485,11 @@ def find_train_data(Data):
         else:
             return t
 
-    if st.session_state.linedists is None:   #Figure out the average times between points
+    if True:#st.session_state.linedists is None:   #Figure out the average times between points
+        #Perhaps not average -- some kind of percentile?
         st.session_state.linetimes = np.zeros(len(st.session_state.linepts))
         timecounts = np.zeros(len(st.session_state.linepts))
+        alltimes_mat = [[] for _ in range(len(st.session_state.linepts))]
         for calls in st.session_state.allcalls:
             for i in range(1, len(calls)):
                 ind0 = st.session_state.linepts.index(calls[i-1][0])
@@ -494,15 +500,22 @@ def find_train_data(Data):
                 else:
                     t1 = ttox(calls[i][2])
                 if ind1 == ind0 + 1:
-                    st.session_state.linetimes[ind1] += t1 - t0
+                    alltimes_mat[ind1].append(t1 - t0)
                     timecounts[ind1] += 1
                 elif ind0 == ind1 + 1:
-                    st.session_state.linetimes[ind0] += t1 - t0
+                    alltimes_mat[ind0].append(t1 - t0)
+
                     timecounts[ind0] += 1
+                    
         timecounts[0] = 1.0
-        st.session_state.linetimes = st.session_state.linetimes/timecounts
+        st.session_state.linetimes[0] = 0.0
         for i in range(1, len(st.session_state.linetimes)):
-            st.session_state.linetimes[i] = st.session_state.linetimes[i-1] + st.session_state.linetimes[i] 
+        
+            st.session_state.linetimes[i] = st.session_state.linetimes[i-1] +  np.percentile(alltimes_mat[i], 10)
+            
+    st.session_state.linetimes = st.session_state.linetimes*1.5
+    del alltimes_mat
+    
     return
     
 def find_all_trains(Data):
@@ -539,6 +552,7 @@ def find_all_trains(Data):
                 #print(html[start_index+1:start_index+7])
             else:
                 go = False
+        del html
         return
 
     all_trains = []
