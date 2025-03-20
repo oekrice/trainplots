@@ -512,9 +512,10 @@ def find_train_data(Data):
         timecounts[0] = 1.0
         st.session_state.linetimes[0] = 0.0
         for i in range(1, len(st.session_state.linetimes)):
-        
-            st.session_state.linetimes[i] = st.session_state.linetimes[i-1] +  np.percentile(alltimes_mat[i], 10)
-            
+            if len(alltimes_mat[i]) > 0:
+                st.session_state.linetimes[i] = st.session_state.linetimes[i-1] +  np.percentile(alltimes_mat[i], 10)
+            else:
+                st.session_state.linetimes[i] = 5.0
     st.session_state.linetimes = st.session_state.linetimes*1.5
     del alltimes_mat
     
