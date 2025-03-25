@@ -11,7 +11,7 @@ import streamlit as st
 from matplotlib.collections import LineCollection
 from threading import RLock
 
-def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors, rt_flag = False):
+def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors, traincode_text, headcode_text, rt_flag = False):
     #Adds an individual train to the plot
     colour = 'black'
     if operator == 'GR':
@@ -112,7 +112,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
         else:
             return t
         
-    def plotbit(xls, yls, bc1, bc2, fig, rt_flag, alllines, allcolors):
+    def plotbit(xls, yls, bc1, bc2, fig, rt_flag, alllines, allcolors, traincode_text, headcode_text):
         
         res = max(10, 4*int((xls[-1] - xls[0])))   #Points to interpolate in time (smoooooth)
         
@@ -134,6 +134,10 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
             alllines.append(np.column_stack((xls, yls))); allcolors.append(colour)
             if dot:
                 plt.scatter(dot_time, yls[0], zorder= 100, c= colour, edgecolor = 'black', s = 50, marker = shape)
+                if len(traincode_text) > 1:
+                    plt.text(dot_time + 2, yls[0], traincode_text, horizontalalignment = 'left', verticalalignment = 'center')
+                if len(headcode_text) > 1:
+                    plt.text(dot_time + 2, yls[0], headcode_text, horizontalalignment = 'left', verticalalignment = 'center')
         else:
             try:
                 yinterp = CubicSpline(xls, yls, bc_type=((bc1 + 1, 0.0), (bc2 + 1, 0.0)))
@@ -151,7 +155,10 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
 
             if dot:
                 plt.scatter(dot_time, yinterp(dot_time), zorder = 100, c= colour, edgecolor = 'black', s = 50, marker = shape)
-
+                if len(traincode_text) > 1:
+                    plt.text(dot_time + 2, yinterp(dot_time), traincode_text, horizontalalignment = 'left', verticalalignment = 'center')
+                if len(headcode_text) > 1:
+                    plt.text(dot_time + 2, yinterp(dot_time), headcode_text, horizontalalignment = 'left', verticalalignment = 'center')
         return
     
 
@@ -268,7 +275,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
         k1 = 0; k2 = 1; bc1 = 0; bc2 = 0
         if xds[0] >= 0.0 and xas[0] >= 0.0:   #Starts with the train stopped -- plot as a straight line
             if abs(xds[0] - xas[0]) > 0.1:  #
-                plotbit([xas[0],xds[0]],[dists[0], dists[0]], 0, 0, fig, rt_flag, alllines, allcolors)
+                plotbit([xas[0],xds[0]],[dists[0], dists[0]], 0, 0, fig, rt_flag, alllines, allcolors, traincode_text, headcode_text)
                 
         while k2 < len(stops):
             if stops[k2] == 1:   #Is a stop, do a plot.
@@ -276,13 +283,13 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
                 if k1 == 0 and stops[k1] == 0:
                     bc1 = 1
                 
-                plotbit(xds[k1:k2] + [xas[k2]], dists[k1:k2+1], bc1, bc2, fig, rt_flag, alllines, allcolors)
+                plotbit(xds[k1:k2] + [xas[k2]], dists[k1:k2+1], bc1, bc2, fig, rt_flag, alllines, allcolors, traincode_text, headcode_text)
                 k1 = k2 
                 
                 #Plot line for when train is stationary. Can put end ones on as well?
                 if xds[k2] >= 0.0 and xas[k2] >= 0.0:
                     if abs(xds[k2] - xas[k2]) > 0.1:
-                        plotbit([xas[k2],xds[k2]],[dists[k2], dists[k2]], 0, 0, fig, rt_flag, alllines, allcolors)
+                        plotbit([xas[k2],xds[k2]],[dists[k2], dists[k2]], 0, 0, fig, rt_flag, alllines, allcolors, traincode_text, headcode_text)
                 
             k2 += 1
             
@@ -295,7 +302,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
             else:
                 bc1 = 0   #Starts stopped
 
-            plotbit(xds[k1:k2], dists[k1:k2], bc1, bc2, fig, rt_flag, alllines, allcolors)
+            plotbit(xds[k1:k2], dists[k1:k2], bc1, bc2, fig, rt_flag, alllines, allcolors, traincode_text, headcode_text)
             #print(bc1, bc2, xds[k1:k2], dists[k1:k2])
 
     return 
@@ -340,8 +347,11 @@ def plot_trains(Paras, counter = -1, save = False):
                 
         plt.gca().set_yticks(yticks)
         # Set ticks labels for x-axis
-        plt.gca().set_yticklabels(ylabels, fontsize = 8.0)   
-        
+        if len(ylabels) > 0:
+            plt.gca().set_yticklabels(ylabels, fontsize = 8.0)   
+        else:
+            st.stop()
+            
         tlabels = []
         
         if False:  #Plot hours
@@ -358,7 +368,10 @@ def plot_trains(Paras, counter = -1, save = False):
                     tlabels.append('%02d:%02d' % (i, j * 15 + 15))
             tlabels.append('%02d:00' % 0)
     
-        plt.gca().set_xticklabels(tlabels, rotation='vertical')
+        if len(tlabels) > 0:
+            plt.gca().set_xticklabels(tlabels, rotation='vertical')
+        else:
+            st.stop()
         
         def startend(calls_test):
             #Gives start and end time for the set of calls
@@ -383,7 +396,7 @@ def plot_trains(Paras, counter = -1, save = False):
                 if (up and Paras.plot_up) or (not up and Paras.plot_down):
                     if Paras.xmin < end and Paras.xmax > start:
                         if st.session_state.allops[k] in Paras.plot_operators and int(st.session_state.allheads[k][:1]) in Paras.plot_heads:
-                            plot_train(st.session_state.allcalls[k], st.session_state.allops[k], st.session_state.allheads[k], 1e6, fig, alllines, allcolors, rt_flag = not(Paras.plot_rt))
+                            plot_train(st.session_state.allcalls[k], st.session_state.allops[k], st.session_state.allheads[k], 1e6, fig, alllines, allcolors,'', '', rt_flag = not(Paras.plot_rt))
         
             if not(Paras.plot_rt):
                 line_collection = LineCollection(alllines, colors=allcolors, linewidths=2.5, alpha = 1.0)
@@ -413,13 +426,21 @@ def plot_trains(Paras, counter = -1, save = False):
     
                 if (up and Paras.plot_up) or (not up and Paras.plot_down):
                 #if allops_rt[k] == 'ZZ' and allcalls_rt[k][0][2] > 300 and allcalls_rt[k][0][2] < 330:
+                    if Paras.write_headcode:
+                        headcode_text = st.session_state.allheads_rt[k]
+                    else:
+                        headcode_text = ''
+                    if Paras.write_traincode:
+                        traincode_text = st.session_state.allcodes_rt[k]
+                    else:
+                        traincode_text = ''
+                        
                     if Paras.xmin < end and Paras.xmax > start:
                         if (st.session_state.allops_rt[k] in Paras.plot_operators) and (int(st.session_state.allheads_rt[k][:1]) in Paras.plot_heads):
     
-                            plot_train(st.session_state.allcalls_rt[k], st.session_state.allops_rt[k], st.session_state.allheads_rt[k], dot_time, fig, alllines, allcolors, rt_flag = True)
+                            plot_train(st.session_state.allcalls_rt[k], st.session_state.allops_rt[k], st.session_state.allheads_rt[k], dot_time, fig, alllines, allcolors, traincode_text, headcode_text, rt_flag = True)
             line_collection = LineCollection(alllines, colors=allcolors, linewidths=2.5, alpha = 1.0)
             plt.gca().add_collection(line_collection)
-                #plot_train(linepts, linedists, allcalls_rt[k], allops_rt[k], allheads_rt[k], dot_time, fig, rt_flag = True)
     
         plt.xlim(Paras.xmin,Paras.xmax)
         tickrange = yticks[-1] - yticks[0]

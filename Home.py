@@ -294,7 +294,7 @@ def run():
         
         refresh_flag = st.checkbox("Plot live trains (may not work well for long or busy routes)", disabled = not istoday, value = st.session_state.refresh, on_change = reset_refresh_start)
 
-        if time.time() -  st.session_state.update_start > 300. and refresh_flag:   #Stop updating if it's been going on a while
+        if time.time() -  st.session_state.update_start > 900. and refresh_flag:   #Stop updating if it's been going on a while (currently 15 mins)
             st.write('**Live plotting stopped due to time limit. Uncheck and check box to restart.**')
             st.write('**If trains fail to update, please start again... This undesirable feature is due to memory limitations.**')
             st.session_state.refresh = False
@@ -324,9 +324,11 @@ def run():
                 Paras.plot_operators = st.pills("Plot operators:", list(set(st.session_state.allops)), default = list(set(st.session_state.allops)), selection_mode = "multi")
                 Paras.plot_heads = st.pills("Plot headcode type:", sorted(headtypes), default = sorted(headtypes), selection_mode = "multi")
                 Paras.aspect = st.slider("Aspect ratio", min_value = 0.25, max_value = 2., value = 1.0,step = (0.05), format = "%.2f")
+                Paras.write_headcode = st.checkbox("Show headcodes", value = False)
+                Paras.write_traincode = st.checkbox("Show RTT codes", value = False)
     
-                init_minval = max(t0, st.session_state.timeref - datetime.timedelta(hours = 2))
-                init_maxval = min(t1, st.session_state.timeref + datetime.timedelta(hours = 2))
+                init_minval = max(t0, st.session_state.timeref - datetime.timedelta(hours = 1.5))
+                init_maxval = min(t1, st.session_state.timeref + datetime.timedelta(hours = 1.5))
                 trange_min, trange_max = st.slider("Time range (if not showing live trains):", min_value = t0, max_value = t1, value = (init_minval, init_maxval), format = "HH:mm")
                 Paras.xmin = trange_min.hour*60 + trange_min.minute; Paras.xmax = trange_max.hour*60 + trange_max.minute
                 Paras.xmin = min(Paras.xmin, 24*60 - 30)
@@ -353,12 +355,11 @@ def run():
             Paras.xmin = max(0, Paras.dot_time - 90); Paras.xmax = min(Paras.dot_time + 90, 60*24)
             st.session_state.paras_chosen = False
             
-        
         try:
             plot_trains(Paras, save = True)   #Saves to a temporary location by default
         except:
             st.error("Plotting failed for some reason... Sorry. Trying again in a second.")
-            time.sleep(1.0)
+            time.sleep(0.01)
             st.rerun()
             
         del Paras   #Try and do some clearing up...

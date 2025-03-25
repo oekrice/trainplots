@@ -362,7 +362,7 @@ def add_train_info(Data, train_code, update = 0, update_index = -1):
         calls, calls_rt, ops, headcode = train_info(Data, train_code, update = True)
     else:
         calls, calls_rt, ops, headcode = train_info(Data, train_code, update = True)
-    if update == 0:   #append to a nothing
+    if update == 0:   #append to a nothing -- this train doesn't exist yet
         for c in range(len(calls)):
             if len(calls[c]) > 1:
                 Data.allcalls.append(calls[c])
@@ -375,20 +375,27 @@ def add_train_info(Data, train_code, update = 0, update_index = -1):
                 Data.allops_rt.append(ops)
                 Data.allheads_rt.append(headcode)
                 Data.allcodes_rt.append(train_code)
-    elif update == 1:
+    elif update == 1:   #This train does exist, so just change some things
         for c in range(len(calls)):
             if len(calls[c]) > 1:
                 if Data.allcalls[update_index][0][0] == calls[c][0][0]:
                     Data.allcalls[update_index] = calls[c]
                     Data.allops[update_index] = ops
                     Data.allheads[update_index] = headcode
-    else:
+    elif update == 2:   #Same as above but for rt
         for c in range(len(calls_rt)):
             if len(calls_rt[c]) > 1:
                 if Data.allcalls_rt[update_index][0][0] == calls_rt[c][0][0]:
                     Data.allcalls_rt[update_index] = calls_rt[c]
                     Data.allops_rt[update_index] = ops
                     Data.allheads_rt[update_index] = headcode
+    else:   #For creating an rt for an existing not rt. Can overwrite if necessary in a minute, which it will do
+        for c in range(len(calls_rt)):
+            if len(calls_rt[c]) > 1:
+                Data.allcalls_rt.append(calls_rt[c])
+                Data.allops_rt.append(ops)
+                Data.allheads_rt.append(headcode)
+                Data.allcodes_rt.append(train_code)
     return
 
 
@@ -412,23 +419,32 @@ def update_train_data(Data):
     threads = []
     for k, calls in enumerate(st.session_state.allcalls):
         start, end = startend(st.session_state.allcalls[k])
-        if current_minutes < end + 10 and current_minutes > start - 10:  #These are trains which need updating            
+            
+        if current_minutes < end + 20 and current_minutes > start - 20:  #These are trains which need updating     
+            if st.session_state.allcodes[k] not in st.session_state.allcodes_rt and abs(current_minutes - start) < 20:
+                #This train may start running in this timeframe -- add a blank thing somehow to the rt? Can then redo in a minute if necessary
+                x = threading.Thread(target=add_train_info, args=(Data, st.session_state.allcodes[k], 3, k), daemon = False)
+                threads.append(x)
+                x.start()
             #print(k, st.session_state.allheads[k], start , end, current_minutes)
             x = threading.Thread(target=add_train_info, args=(Data, st.session_state.allcodes[k], 1, k), daemon = False)
             threads.append(x)
             x.start()
+    
     #Do calls_rt
     for j, x in enumerate(threads):
         x.join()
     for k, calls in enumerate(st.session_state.allcalls_rt):
         start, end = startend(st.session_state.allcalls_rt[k])
-        if current_minutes < end + 10 and current_minutes > start - 10:  #These are trains which need updating            
+        #Would like to get trains which are timetabled to appear but haven't yet. How?
+        if current_minutes < end + 20 and current_minutes > start - 20:  #These are trains which need updating            
             #print(k, st.session_state.allheads[k], start , end, current_minutes)
             x = threading.Thread(target=add_train_info, args=(Data, st.session_state.allcodes_rt[k], 2, k), daemon = False)
             threads.append(x)
             x.start()
     for j, x in enumerate(threads):
         x.join()
+    
     st.session_state.allcalls = Data.allcalls
     st.session_state.allops = Data.allops
     st.session_state.allcalls_rt = Data.allcalls_rt
