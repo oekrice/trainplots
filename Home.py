@@ -308,7 +308,7 @@ def run():
             with st.expander("Choose plot parameters"):
                 if st.session_state.timeref is None:
                     
-                    st.session_state.timeref = datetime.datetime(2000,1,1,datetime.datetime.now().hour, datetime.datetime.now().minute, 0).astimezone(uk_tz)
+                    st.session_state.timeref = datetime.datetime(2000,1,1,datetime.datetime.now().astimezone(uk_tz).hour, datetime.datetime.now().astimezone(uk_tz).minute, 0)
             
                 t0 = datetime.datetime(2000,1,1,0,0,0) .astimezone(uk_tz)
                 t1 = datetime.datetime(2000,1,1,23,59,0).astimezone(uk_tz)
