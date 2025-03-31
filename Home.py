@@ -12,6 +12,7 @@ import io
 import pandas as pd
 import numpy as np
 import time as time_module
+import pytz
 
 LOGGER = get_logger(__name__)
 
@@ -142,7 +143,8 @@ def run():
         Data = all_data()
         return Data
 
-        
+    uk_tz = pytz.timezone('Europe/London')
+
     Data = get_data()
     
     #Establish the first train to use
@@ -150,8 +152,8 @@ def run():
         rtt_code = st.text_input("Input RTT code (eg. P13795)", on_change = reset_route)
         if rtt_code == '':
             st.stop()
-        init_date = st.date_input("Date this train happened", value ="today", min_value = datetime.date.today() - datetime.timedelta(days = 7), max_value = datetime.date.today(), on_change = reset_route)
-        init_url = "https://www.realtimetrains.co.uk/service/gb-nr:" + rtt_code + '/' + str(init_date) + '/detailed#allox_id=0'
+        init_date = st.date_input("Date this train happened", value ="today", min_value = uk_tz.localize(datetime.datetime.today()) - datetime.timedelta(days = 7), max_value = uk_tz.localize(datetime.datetime.today()), on_change = reset_route)
+        init_url = "https://www.realtimetrains.co.uk/service/gb-nr:" + rtt_code + '/' + str(init_date)[:10]  + '/detailed#allox_id=0'
         st.session_state.linepts, st.session_state.linedists = find_line_info(init_url, init = True, unspecified = False)
         st.session_state.stat_selected_1 = True
 
@@ -185,7 +187,7 @@ def run():
 
     else:   #Specifying stations
         cols = st.columns(2)
-        init_date = datetime.date.today()
+        init_date = uk_tz.localize(datetime.datetime.today())
 
         with cols[0]:
             start_name = st.selectbox("Start station", Data.full_names, index = None,  on_change = reset_route, key = 24556567)
@@ -208,7 +210,7 @@ def run():
                 st.error("No train found travelling between these stations today. Try specifying a train instead?")
                 st.stop()
 
-            init_url = "https://www.realtimetrains.co.uk/service/gb-nr:" + rtt_code + '/' + str(init_date) + '/detailed#allox_id=0'
+            init_url = "https://www.realtimetrains.co.uk/service/gb-nr:" + rtt_code + '/' + str(init_date)[:10]  + '/detailed#allox_id=0'
        
             #DO need to trim here...
             #start_ind = station_inds[station_names.index(start_name)]
@@ -247,12 +249,14 @@ def run():
 
     with st.expander("View all waypoints and distances on this route:"):
         if st.session_state.linedists is not None:
-            st.write(np.vstack((st.session_state.linepts, st.session_state.linedists)).T)
+            sanitised_linedists = np.array([round(val, 4) for val in st.session_state.linedists])
+            st.write(np.vstack((st.session_state.linepts, sanitised_linedists)).T)
         else:
             st.write(np.array(st.session_state.linepts))
         
-    Data.plot_date = st.date_input("Date to plot", value ="today", min_value = datetime.date.today() - datetime.timedelta(days = 7), max_value = datetime.date.today(), on_change = reset_trains)
-    Data.plot_yesterday =  datetime.date.today() - datetime.timedelta(days = 1)
+    Data.plot_date = st.date_input("Date to plot", value ="today", min_value = uk_tz.localize(datetime.datetime.today()) - datetime.timedelta(days = 7), max_value = uk_tz.localize(datetime.datetime.today()), on_change = reset_trains)
+    Data.plot_date = datetime.datetime.combine(Data.plot_date, datetime.datetime.min.time())
+    Data.plot_yesterday =  uk_tz.localize(datetime.datetime.today()) - datetime.timedelta(days = 1)
 
     if st.button("Find all trains on this route on this day", disabled = st.session_state.all_trains != None):
         st.write("Finding all trains...")
@@ -290,7 +294,7 @@ def run():
             st.error("No trains found on this route")
             st.stop()
         
-        istoday = Data.plot_date == datetime.date.today()
+        istoday = Data.plot_date.day == uk_tz.localize(datetime.datetime.today()).day
         
         refresh_flag = st.checkbox("Plot live trains (may not work well for long or busy routes)", disabled = not istoday, value = st.session_state.refresh, on_change = reset_refresh_start)
 
@@ -303,10 +307,11 @@ def run():
         with st.form("Plot stuff"):
             with st.expander("Choose plot parameters"):
                 if st.session_state.timeref is None:
-                    st.session_state.timeref = datetime.datetime(2000,1,1,datetime.datetime.now().hour, datetime.datetime.now().minute, 0)
+                    
+                    st.session_state.timeref = datetime.datetime(2000,1,1,datetime.datetime.now().hour, datetime.datetime.now().minute, 0).astimezone(uk_tz)
             
-                t0 = datetime.datetime(2000,1,1,0,0,0) 
-                t1 = datetime.datetime(2000,1,1,23,59,0)
+                t0 = datetime.datetime(2000,1,1,0,0,0) .astimezone(uk_tz)
+                t1 = datetime.datetime(2000,1,1,23,59,0).astimezone(uk_tz)
              
                 Paras = plot_paras()
                 headtypes = []
@@ -327,15 +332,19 @@ def run():
                 Paras.write_headcode = st.checkbox("Show headcodes", value = False)
                 Paras.write_traincode = st.checkbox("Show RTT codes", value = False)
     
-                init_minval = max(t0, st.session_state.timeref - datetime.timedelta(hours = 1.5))
-                init_maxval = min(t1, st.session_state.timeref + datetime.timedelta(hours = 1.5))
+                init_minval = max(t0, st.session_state.timeref.astimezone(None) - datetime.timedelta(hours = 1.5))
+                init_maxval = min(t1, st.session_state.timeref.astimezone(None) + datetime.timedelta(hours = 1.5))
+                
+                init_minval = init_minval.astimezone(uk_tz)
+                init_maxval = init_maxval.astimezone(uk_tz)
+
                 trange_min, trange_max = st.slider("Time range (if not showing live trains):", min_value = t0, max_value = t1, value = (init_minval, init_maxval), format = "HH:mm")
                 Paras.xmin = trange_min.hour*60 + trange_min.minute; Paras.xmax = trange_max.hour*60 + trange_max.minute
                 Paras.xmin = min(Paras.xmin, 24*60 - 30)
                 Paras.xmax = max(Paras.xmax, Paras.xmin + 30)
                 if istoday:
                     #dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = st.session_state.timeref, format = "HH:mm")
-                    dot_time = datetime.datetime.now() 
+                    dot_time = datetime.datetime.now().astimezone(uk_tz)
                     Paras.dot_time = dot_time.hour*60 + dot_time.minute - 1
                 else:
                     #dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = t1, format = "HH:mm")
@@ -350,7 +359,7 @@ def run():
         if refresh_flag:
             #Need to update trains then do the above, but specify a load of the parameters
             update_train_data(Data)
-            dot_time = datetime.datetime.now()
+            dot_time = datetime.datetime.now().astimezone(uk_tz)
             Paras.dot_time = dot_time.hour*60 + dot_time.minute + dot_time.second/60.0
             Paras.xmin = max(0, Paras.dot_time - 90); Paras.xmax = min(Paras.dot_time + 90, 60*24)
             st.session_state.paras_chosen = False

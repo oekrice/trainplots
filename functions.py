@@ -22,7 +22,7 @@ def station_code(Data, station_name):
 def find_trains_pts(Data, init_date, start_code, end_code):
     #Finds trains between two points (as codes)
     #Check first direction first
-    search_url1 = "https://www.realtimetrains.co.uk/search/detailed/gb-nr:" + str(start_code) + '/to/gb-nr:' + str(end_code) + '/' + str(init_date) + '/0000-2359?stp=WVS&show=all&order=wtt'
+    search_url1 = "https://www.realtimetrains.co.uk/search/detailed/gb-nr:" + str(start_code) + '/to/gb-nr:' + str(end_code) + '/' + str(init_date)[:10] + '/0000-2359?stp=WVS&show=all&order=wtt'
     html = urlopen(search_url1).read().decode("utf-8")
     ref_index = 0
     go = True
@@ -44,7 +44,7 @@ def find_trains_pts(Data, init_date, start_code, end_code):
     testpts = None; testdists = None; goodcode = None
     for code in all_trains:
         if not found1 or not found2:
-            test_url = "https://www.realtimetrains.co.uk/service/gb-nr:" + code + '/' + str(init_date) + '/detailed#allox_id=0'
+            test_url = "https://www.realtimetrains.co.uk/service/gb-nr:" + code + '/' + str(init_date)[:10]  + '/detailed#allox_id=0'
             testpts, testdists = find_line_info(test_url, init = False)
             if testpts is not None:
                 found1 = True
@@ -123,7 +123,7 @@ def find_line_info(url, init = False, unspecified = False):
 
 def train_info(Data, train_code, update = False):
     #This function finds out everything about a train on a given date, using advanced scraping from RTT
-    url = 'https://www.realtimetrains.co.uk/service/gb-nr:' + train_code + '/' + str(Data.plot_date) + '/detailed'
+    url = 'https://www.realtimetrains.co.uk/service/gb-nr:' + train_code + '/' + str(Data.plot_date)[:10]  + '/detailed'
     failcount = 0
     go = True
     while go:
@@ -134,7 +134,7 @@ def train_info(Data, train_code, update = False):
             go = False
         except:   #Try to go for the day before? Trains might have happened before midnight
             try:
-                url = 'https://www.realtimetrains.co.uk/service/gb-nr:' + train_code + '/' + str(Data.plot_yesterday) + '/detailed'
+                url = 'https://www.realtimetrains.co.uk/service/gb-nr:' + train_code + '/' + str(Data.plot_yesterday)[:10]  + '/detailed'
                 page = urlopen(url)
                 html_bytes = page.read()    
                 html = html_bytes.decode("utf-8")
@@ -542,7 +542,7 @@ def find_all_trains(Data):
     Finds all the train codes that pass through linepts on a given date.
     '''
     def pturl(code):
-        return 'https://www.realtimetrains.co.uk/search/detailed/gb-nr:' + code + '/' + str(Data.plot_date) + '/0000-2359?stp=WVS&show=all&order=wtt'
+        return 'https://www.realtimetrains.co.uk/search/detailed/gb-nr:' + code + '/' + str(Data.plot_date)[:10]  + '/0000-2359?stp=WVS&show=all&order=wtt'
     
     def trains_at_point(point, all_trains, traincount):
         #This should be sped up with multithreading
