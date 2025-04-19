@@ -15,7 +15,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
     #Adds an individual train to the plot
     colour = 'black'
     if operator == 'GR':
-        colour = 'red'
+        colour = 'ce0e2d'
     elif operator == 'TP':
         colour = 'turquoise'
     elif operator == 'XC':
