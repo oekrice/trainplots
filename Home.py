@@ -363,7 +363,8 @@ def run():
             Paras.dot_time = dot_time.hour*60 + dot_time.minute + dot_time.second/60.0
             Paras.xmin = max(0, Paras.dot_time - 90); Paras.xmax = min(Paras.dot_time + 90, 60*24)
             st.session_state.paras_chosen = False
-            
+
+        #plot_trains(Paras, save = True)   #For use when the bug handler is being unhelpful
         try:
             plot_trains(Paras, save = True)   #Saves to a temporary location by default
         except:
@@ -371,7 +372,7 @@ def run():
             time.sleep(0.01)
             st.rerun()
             
-        del Paras   #Try and do some clearing up...
+        del Paras   #Try to do some clearing up...
         del Data
 
         fname = './tmp/%s_%s.png' % (st.session_state.linepts[0], st.session_state.linepts[-1])
@@ -379,7 +380,7 @@ def run():
         if os.path.exists(fname):
             with open(fname, "rb") as img:
                 st.download_button(label="Download high-resolution plot (may not be fast...)", file_name = fname_local,  data=img,mime="image/png")
-            os.system('rm -r %s' % fname)        
+            os.remove(fname)     
         st.session_state.update_time = time.time()
 
         if refresh_flag:

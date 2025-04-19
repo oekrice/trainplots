@@ -13,71 +13,64 @@ from threading import RLock
 
 def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors, traincode_text, headcode_text, rt_flag = False):
     #Adds an individual train to the plot
+    #Now using colours from Wikipedia to stop complaints about subjectivity
     colour = 'black'
-    if operator == 'GR':
-        colour = 'ce0e2d'
-    elif operator == 'TP':
-        colour = 'turquoise'
-    elif operator == 'XC':
-        colour = 'brown'
-    elif operator == 'NT':
-        colour = 'purple'
-    elif operator == 'ZZ':
-        colour = 'darkgoldenrod'
-    elif operator == 'LD':
-        colour = 'darkblue'
-    elif operator == 'GC':
-        colour = 'black'
-    elif operator == 'GN':
-        colour = 'lightblue'
-    elif operator == 'HT':
-        colour = 'green'
-    elif operator == 'EM':
-        colour = 'purple'
-    elif operator == 'TL':
-        colour = 'grey'
-    elif operator == 'LE':
-        colour = 'lightgreen'
+    if operator == 'LE':
+        colour = '#d70428'
     elif operator == 'SR':
-        colour = 'blue'
-    elif operator == 'CS':
-        colour = 'brown'
+        colour = '#1e467d'
     elif operator == 'VT':
-        colour = 'grey'
-    elif operator == 'MV':
-        colour = 'black'
-    elif operator == 'WR':
-        colour = 'brown'
-    elif operator == 'ME':
-        colour = 'yellow'
-    elif operator == 'LM':
-        colour = 'mediumseagreen'
-    elif operator == 'AW':
-        colour = 'red'
-    elif operator == 'SE':
-        colour = 'blue'
-    elif operator == 'ES':
-        colour = 'black'
-    elif operator == 'SW':
-        colour = 'red'
-    elif operator == 'LO':
-        colour = 'orange'
-    elif operator == 'SN':
-        colour = 'green'
-    elif operator == 'GX':
-        colour = 'lightblue'
-    elif operator == 'LT':
-        colour = 'blue'
-    elif operator == 'LS':
-        colour = 'brown'
+        colour = '#004354'
+    elif operator == 'CC':
+        colour = '#b7007c'
+    elif operator == 'CS':
+        colour = '#1d2e35'
+    elif operator == 'CH':
+        colour = '#00bfff'
+    elif operator == 'XC':
+        colour = '#660f21'
+    elif operator == 'EM':
+        colour = '#713563'
     elif operator == 'GW':
-        colour = 'darkgreen'
-    elif operator == 'LR':
-        colour = 'orange'
-    elif operator == 'XR':
-        colour = 'purple'
+        colour = '#0a493e'
+    elif operator == 'HT':
+        colour = '#de005c'
+    elif operator == 'TL':
+        colour = '#ff5aa4'
     elif operator == 'HX':
-        colour = 'blue'
+        colour = '#532e63'
+    elif operator == 'IL':
+        colour = '#1e90ff'
+    elif operator == 'AW':
+        colour = '#ff0000'
+    elif operator == 'LM':
+        colour = '#00bf6f'
+    elif operator == 'GR':
+        colour = '#ce0e2d'
+    elif operator == 'NT':
+        colour = '#0f0d78'
+    elif operator == 'SN':
+        colour = '#8cc63e'
+    elif operator == 'SE':
+        colour = '#389cff'
+    elif operator == 'SW':
+        colour = '#24398c'
+    elif operator == 'SX':
+        colour = '#6b717a'
+    elif operator == 'TP':
+        colour = '#09a4ec'
+    elif operator == 'WM':
+        colour = '#ff8300'
+    elif operator == 'LD':
+        colour = '#2b6ef5'
+    elif operator == 'GC':
+        colour = '#1d1d1b'
+    elif operator == 'NY':
+        colour = '#cc0033'
+    elif operator == 'WR':
+        colour = '#800000'
+    elif operator == 'ZZ':
+        colour = 'orange'
     if operator == 'ZZ' and not rt_flag:
         return
         #colour = 'black'
