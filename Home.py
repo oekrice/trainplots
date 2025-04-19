@@ -330,6 +330,8 @@ def run():
                 Paras.aspect = st.slider("Aspect ratio", min_value = 0.25, max_value = 2., value = 1.0,step = (0.05), format = "%.2f")
                 Paras.write_headcode = st.checkbox("Show headcodes", value = False)
                 Paras.write_traincode = st.checkbox("Show RTT codes", value = False)
+                Paras.show_stations = st.checkbox("Show station positions as dashed lines", value = False)
+                
     
                 init_minval = max(t0, st.session_state.timeref.astimezone(None) - datetime.timedelta(hours = 1.5))
                 init_maxval = min(t1, st.session_state.timeref.astimezone(None) + datetime.timedelta(hours = 1.5))

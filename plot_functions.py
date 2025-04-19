@@ -336,7 +336,8 @@ def plot_trains(Paras, counter = -1, save = False):
             if len(st.session_state.linepts[i]) == 3 and st.session_state.linepts[i][0] != 'X':
                 ylabels.append(st.session_state.linepts[i])
                 yticks.append(linedists_plot[i])
-                #plt.plot([-60,25*60], [linedists[i], linedists[i]], c= 'grey', alpha = 1.0, linewidth = 1.0)    
+                if Paras.show_stations:
+                    plt.axhline(y = linedists_plot[i], c = 'grey', linestyle = 'dashed')
                 
         plt.gca().set_yticks(yticks)
         # Set ticks labels for x-axis
@@ -373,8 +374,8 @@ def plot_trains(Paras, counter = -1, save = False):
                 end = calls_test[-1][1]%100 + 60*( calls_test[-1][1]//100)
             else:
                 end = calls_test[-1][2]%100 + 60*( calls_test[-1][2]//100)
-            return start,end
-            
+            return start,end            
+
         alllines = []; allcolors = []
         if Paras.plot_wtt:
             for k in range(len(st.session_state.allcalls)):
