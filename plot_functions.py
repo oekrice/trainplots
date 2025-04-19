@@ -11,6 +11,7 @@ import streamlit as st
 from matplotlib.collections import LineCollection
 from threading import RLock
 
+#Adding comment so a commit is detected
 def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors, traincode_text, headcode_text, rt_flag = False):
     #Adds an individual train to the plot
     #Now using colours from Wikipedia to stop complaints about subjectivity
