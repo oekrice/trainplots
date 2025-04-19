@@ -130,8 +130,7 @@ def run():
             Occasionally the RTT data is input strangely enough (with VST or STP workings usually) that trains will appear in completely random places. I've tried to catch all of these but it's hard to stop them all. \\
             If a train takes a suspiciously long time to pass between waypoints, I will assume it has stopped for a bit even if it didn't in reality. This can make it seem like trains are on top of each other in the middle of nowhere when actually they were stopped some distance apart.  \\
             Trains not detected initially will not show up on the live plots if they subsequently become a thing. If this is important just find all the trains again and they'll show up. \\
-            Operator colour schemes are decided by me and I'm apparently wrong about some of them. \\
-            On manually-signalled lines trains sometimes don't get logged so it looks like they don't stop anywhere
+            On manually-signalled lines trains sometimes don't get logged so it looks like they don't stop anywhere or go missing for a while.
             """
         )
     

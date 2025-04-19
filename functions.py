@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import pytz
 import streamlit as st
 from urllib.request import urlopen
 import threading
@@ -410,7 +411,13 @@ def startend(calls):
 
 def update_train_data(Data):
     #To be used with the live thing -- using current time to see which trains are currently active. Won't add more because hard.
-    current_minutes = datetime.datetime.now().hour*60 + datetime.datetime.now().minute
+    #I think this is the updating bug which only appeared after the BST update
+
+    uk_tz = pytz.timezone('Europe/London')
+
+    current_time = datetime.datetime.now().astimezone(uk_tz)
+    current_minutes = current_time.hour*60 + current_time.minute - 1
+    #current_minutes = datetime.datetime.now().hour*60 + datetime.datetime.now().minute
     Data.allcalls = st.session_state.allcalls; Data.allops = st.session_state.allops
     Data.allcalls_rt =st.session_state.allcalls_rt ; Data.allops_rt = st.session_state.allops_rt; Data.allheads = st.session_state.allheads; Data.allheads_rt = st.session_state.allheads_rt
     Data.allcodes = st.session_state.allcodes; Data.allcodes_rt = st.session_state.allcodes_rt
@@ -420,7 +427,7 @@ def update_train_data(Data):
     for k, calls in enumerate(st.session_state.allcalls):
         start, end = startend(st.session_state.allcalls[k])
             
-        if current_minutes < end + 20 and current_minutes > start - 20:  #These are trains which need updating     
+        if current_minutes < end + 20 and current_minutes > start - 20:  #These are trains which are active and which need updating     
             if st.session_state.allcodes[k] not in st.session_state.allcodes_rt and abs(current_minutes - start) < 20:
                 #This train may start running in this timeframe -- add a blank thing somehow to the rt? Can then redo in a minute if necessary
                 x = threading.Thread(target=add_train_info, args=(Data, st.session_state.allcodes[k], 3, k), daemon = False)
