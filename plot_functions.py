@@ -69,11 +69,32 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
         colour = '#cc0033'
     elif operator == 'WR':
         colour = '#800000'
+    elif operator == 'ES':
+        colour = '#086bfe'
+    elif operator == 'GN':
+        colour = '#0099FF'
+    elif operator == 'GX':
+        colour = '#eb1e2d'
+    elif operator == 'LO':
+        colour = '#e87722'
+    elif operator == 'LT':
+        colour = '#a45a2a'
+    elif operator == 'ME':
+        colour = '#fff200'
+    elif operator == 'SJ':
+        colour = '#000000'
+    elif operator == 'TW':
+        colour = '#fabb00'
+    elif operator == 'XR':
+        colour = '#6950a1'
     elif operator == 'ZZ':
         colour = 'orange'
     if operator == 'ZZ' and not rt_flag:
         return
+    
         #colour = 'black'
+
+
     #Determine shape from headcode
     train_type = int(headcode[0])
     if train_type == 1 or train_type == 9:
@@ -84,7 +105,6 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
         shape = 'o'
         max_speed = 1.5
         min_speed = 0.5
-
     elif train_type == 5 or train_type == 3:
         shape = 'p'
         if train_type == 5:
@@ -92,7 +112,6 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
         else:
             max_speed = 1.5
         min_speed = 0.5
-
     else:
         shape = 's'
         max_speed = 1.0
@@ -166,8 +185,9 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
             start = calls[0][2]%100 + 60*(calls[0][2]//100) 
             if calls[-1][1] >= 0:
                 end = calls[-1][1]%100 + 60*( calls[-1][1]//100)
-            else:
+            elif calls[-1][2] >= 0:
                 end = calls[-1][2]%100 + 60*( calls[-1][2]//100)
+            
             return start,end
 
         #Establish new method of plotting things
@@ -187,7 +207,11 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
         #Run through calls and change if necessary
         #Pretend there are stops if it's slow, and adjust timings to average if too fast
         dists = []; stops = []; xas = []; xds = []
-        
+        if headcode == 'fdfdfdgfd':
+            st.session_state.diag_flag = True
+        else:
+            st.session_state.diag_flag = False
+
         for i in range(len(call_set[:])):
             dists.append(linedists_plot[st.session_state.linepts.index(call_set[i][0])])
             xas.append(ttox(call_set[i][1]))
@@ -227,7 +251,7 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
 
                     if xas[-1] > 0:
                         if st.session_state.diag_flag:
-                            print('too slow 2')
+                            print('too slow 2', xas, xds)
 
                         #Too slow between a departure and next arrival
                         if abs(dists[-1] - dists[-2])/(xas[-1] - xds[-2]) < min_speed:
@@ -262,7 +286,6 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
                         xds[-1] = xas[-1]
                 
             
-        
         #Now slice in between the stops. Run through and check where they are. 
         #BC flags 0 for default, 1 for enter at speed and 2 for leave at speed
         k1 = 0; k2 = 1; bc1 = 0; bc2 = 0
@@ -283,6 +306,11 @@ def plot_train(call_set, operator, headcode, dot_time, fig, alllines, allcolors,
                 if xds[k2] >= 0.0 and xas[k2] >= 0.0:
                     if abs(xds[k2] - xas[k2]) > 0.1:
                         plotbit([xas[k2],xds[k2]],[dists[k2], dists[k2]], 0, 0, fig, rt_flag, alllines, allcolors, traincode_text, headcode_text)
+                
+                #If train is CURRENTLY stopped but not at the end of its journey
+                if xds[k2] == -3:
+                    if abs(xds[k2] - xas[k2]) > 0.1:
+                        plotbit([xas[k2],24*60-1],[dists[k2], dists[k2]], 0, 0, fig, rt_flag, alllines, allcolors, traincode_text, headcode_text)
                 
             k2 += 1
             
@@ -316,13 +344,11 @@ def plot_trains(Paras, counter = -1, save = False):
         st.error("Plot is too large... Try a shorter route or smaller time window")
         st.stop()
         
-    _lock = RLock()
+    _lock = RLock()   #This is to stop plots getting spliced
     
     with _lock:
         fig = plt.figure(figsize = (xsize*Paras.aspect,ysize))
         
-        #Establish y axis distances/labels. If no distance data just use integers. 
-        #Shame that distance data isn't universal but meh. Could perhaps bodge later?
         yticks = []
         ylabels = []
         
@@ -372,6 +398,8 @@ def plot_trains(Paras, counter = -1, save = False):
             start = calls_test[0][2]%100 + 60*(calls_test[0][2]//100) 
             if calls_test[-1][2] == -2:
                 end = calls_test[-1][1]%100 + 60*( calls_test[-1][1]//100)
+            elif calls_test[-1][2] == -3:
+                end = 24*60-1
             else:
                 end = calls_test[-1][2]%100 + 60*( calls_test[-1][2]//100)
             return start,end            
@@ -379,7 +407,6 @@ def plot_trains(Paras, counter = -1, save = False):
         alllines = []; allcolors = []
         if Paras.plot_wtt:
             for k in range(len(st.session_state.allcalls)):
-                
                 if st.session_state.linepts.index(st.session_state.allcalls[k][-1][0]) > st.session_state.linepts.index(st.session_state.allcalls[k][0][0]):
                     up = False
                 else:
@@ -403,12 +430,6 @@ def plot_trains(Paras, counter = -1, save = False):
             #print('_________________________-')
             for k in range(len(st.session_state.allcalls_rt)):
                 st.session_state.diag_flag = False
-                start = 'TRHFGDFGB'
-                mint = 1520; maxt = 1530
-                if st.session_state.allcalls_rt[k][0][0] == start:
-                    if st.session_state.allcalls_rt[k][0][2] > mint and st.session_state.allcalls_rt[k][0][2] < maxt:
-                        print(st.session_state.allcalls_rt[k])
-                        st.session_state.diag_flag = True
                 
                 if st.session_state.linepts.index(st.session_state.allcalls_rt[k][-1][0]) > st.session_state.linepts.index(st.session_state.allcalls_rt[k][0][0]):
                     up = False
@@ -417,7 +438,6 @@ def plot_trains(Paras, counter = -1, save = False):
         
                 start, end = startend(st.session_state.allcalls_rt[k])
                 
-    
                 if (up and Paras.plot_up) or (not up and Paras.plot_down):
                 #if allops_rt[k] == 'ZZ' and allcalls_rt[k][0][2] > 300 and allcalls_rt[k][0][2] < 330:
                     if Paras.write_headcode:
@@ -428,7 +448,7 @@ def plot_trains(Paras, counter = -1, save = False):
                         traincode_text = st.session_state.allcodes_rt[k]
                     else:
                         traincode_text = ''
-                        
+
                     if Paras.xmin < end and Paras.xmax > start:
                         if (st.session_state.allops_rt[k] in Paras.plot_operators) and (int(st.session_state.allheads_rt[k][:1]) in Paras.plot_heads):
     

@@ -228,12 +228,11 @@ def train_info(Data, train_code, update = False):
 
                 if go:
                     calls[-1].append([call, arr, dep])
-                        
                     on_line = True
                     off_line_time = 0
             else:
                 off_line_time = off_line_time + 1
-                if off_line_time > 5:
+                if off_line_time > 1:
                     on_line = False
             ref_index = end_index + 1
 
@@ -247,7 +246,9 @@ def train_info(Data, train_code, update = False):
     
     on_line = False  #flag to tell if a train is on the line. For splitting up the journeys when trains rejoin the route. Being a bit stupid...
     flag = False
-    rt_flag = 0
+    rt_flag = 2  #If this is zero, allow ONE extra waypoint to be assumed on the RT. Don't want to start unless there's a thing though
+    stationary_flag = False  #True if the train is stationary in real time (arrival logged but no departure)
+    #BUT need to not do that if the train is stationary
     while go:   #For actual times
         find_text = "/search/detailed"
         add = True
@@ -260,7 +261,7 @@ def train_info(Data, train_code, update = False):
             call = html[start_index+7:end_index-16]
             
             if call in Data.linepts:
-
+                
                 dep_index = html[start_index:end_search_index].find('dep">') + start_index
                 
                 #Search for things AFTER this dep
@@ -290,17 +291,6 @@ def train_info(Data, train_code, update = False):
                 
                 arr_act = html[arr_act_index:arr_act_index+4]
 
-                #print(html[dep_act_index-8:dep_act_index-2])
-                #This stop isn't actually here (the train didn't run)
-                #BUT if doing the update, DO include these!                    
-                if html[dep_act_index-8:dep_act_index-2] == "(RMME)" or html[dep_act_index-8:dep_act_index-2] == "table)":
-                    if (not update) or rt_flag > 1:
-                        arr_act = -2
-                        dep_act = -2
-                    else:
-                        rt_flag += 1
-                else:
-                    rt_flag = 0
                 if arr_act == '<spa':
                     arr_act = -2
 
@@ -313,8 +303,30 @@ def train_info(Data, train_code, update = False):
                 if arr_act > 0:
                     if html[arr_act_index+4:arr_act_index+9] == "&frac":
                         arr_act = arr_act + whichfrac(html[arr_act_index+9:arr_act_index+11])
-                        
-                
+
+                #print(html[dep_act_index-8:dep_act_index-2])
+                #This stop isn't actually here (the train hasn't run here yet)
+                #BUT if doing the update, DO include these!  
+
+                if html[dep_act_index-8:dep_act_index-2] == "(RMME)" or html[dep_act_index-8:dep_act_index-2] == "table)":
+                    if arr_act > 0:   
+                        stationary_flag = True
+                    if (not update) or rt_flag > 1:   #This is past the end of what can be plotted for now, unless later things come along
+                        arr_act = -2
+                        dep_act = -2
+                    elif stationary_flag:  #Plot as normal but do increase rt_flag
+                        dep_act = -3 #Indicates to carry on plotting train as it may be stationary indefinitely
+                        rt_flag += 2
+                    else:
+                        if arr_act > 0:
+                            rt_flag += 2
+                        else:
+                            rt_flag += 1
+                else:
+                    rt_flag = 0
+
+                #print(call, arr_act, dep_act) 
+
                 if not on_line:
                     calls_rt.append([])
                      
@@ -344,8 +356,9 @@ def train_info(Data, train_code, update = False):
                             calls_rt[-1][-2][2] = calls_rt[-1][-2][1]
 
             else:
+                #on_line = False  #Be BRUTRAL -- not on this exact line. Allow no reports.
                 off_line_time = off_line_time + 1
-                if off_line_time > 5:
+                if off_line_time > 1:
                     on_line = False
             ref_index = end_index + 1
 
@@ -426,7 +439,6 @@ def update_train_data(Data):
     threads = []
     for k, calls in enumerate(st.session_state.allcalls):
         start, end = startend(st.session_state.allcalls[k])
-            
         if current_minutes < end + 20 and current_minutes > start - 20:  #These are trains which are active and which need updating     
             if st.session_state.allcodes[k] not in st.session_state.allcodes_rt and abs(current_minutes - start) < 20:
                 #This train may start running in this timeframe -- add a blank thing somehow to the rt? Can then redo in a minute if necessary
@@ -452,6 +464,7 @@ def update_train_data(Data):
     for j, x in enumerate(threads):
         x.join()
     
+
     st.session_state.allcalls = Data.allcalls
     st.session_state.allops = Data.allops
     st.session_state.allcalls_rt = Data.allcalls_rt
@@ -474,6 +487,13 @@ def find_train_data(Data):
     Data.linepts = st.session_state.linepts
     start_ind = 0
     
+    if False:
+        #Testing module --- loking for a particular train on this route
+        add_train_info(Data, "W23819", 0, -1)
+        print(Data.allcalls_rt[0])
+        print('Test complete, maybe...')
+        st.stop()
+
     while go:
         end_ind = min(start_ind + lump_size, len(st.session_state.all_trains[:]))
         for k, train in enumerate(st.session_state.all_trains[start_ind:end_ind]):

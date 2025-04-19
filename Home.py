@@ -345,7 +345,7 @@ def run():
                 Paras.xmax = max(Paras.xmax, Paras.xmin + 30)
                 if istoday:
                     #dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = st.session_state.timeref, format = "HH:mm")
-                    dot_time = datetime.datetime.now().astimezone(uk_tz)
+                    dot_time = st.session_state.timeref.astimezone(None)#datetime.datetime.now().astimezone(uk_tz)
                     Paras.dot_time = dot_time.hour*60 + dot_time.minute - 1
                 else:
                     #dot_time = st.slider("Time to plot RT until", min_value = t0, max_value = t1, value = t1, format = "HH:mm")
