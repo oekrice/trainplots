@@ -60,8 +60,6 @@ def find_trains_pts(Data, init_date, start_code, end_code):
                 found1 = True
             if testdists is not None:
                 found2 = True
-            print(test_url, found1, found2)
-
             goodcode = code
     del all_trains
     del html
@@ -152,8 +150,15 @@ def train_info(Data, train_code, update = False):
             html = html_bytes.decode("utf-8")
             go = False
         except:   #Try to go for the day before? Trains might have happened before midnight
-            print('URL FAILED', url)
-            return [],[],[],[],[]
+            time.sleep(0.1)
+            try:
+                page = urlopen(url)
+                html_bytes = page.read()    
+                html = html_bytes.decode("utf-8")
+                go = False
+                print('URL FAILED', url)
+            except:
+                return [],[],[],[],[]
         
     find_text = "train-operator"
     title_index = html.find(find_text) + len(find_text) + 2
@@ -547,7 +552,7 @@ def find_train_data(Data):
     st.session_state.allcodes_rt = Data.allcodes_rt
     st.session_state.allactives_rt = Data.allactives_rt
     
-    #Run throught to make distances
+    #Run throughoutt to make distances
     def ttox(t):  
         #Converts time into minutes since midnight
         if t >= 0:
@@ -581,10 +586,10 @@ def find_train_data(Data):
         st.session_state.linetimes[0] = 0.0
         for i in range(1, len(st.session_state.linetimes)):
             if len(alltimes_mat[i]) > 0:
-                st.session_state.linetimes[i] = st.session_state.linetimes[i-1] +  np.percentile(alltimes_mat[i], 10)
+                st.session_state.linetimes[i] = st.session_state.linetimes[i-1] +  np.percentile(alltimes_mat[i], 5.0)
             else:
                 st.session_state.linetimes[i] = 5.0
-    st.session_state.linetimes = st.session_state.linetimes*1.5
+    st.session_state.linetimes = st.session_state.linetimes*1.25
     del alltimes_mat
     
     return
