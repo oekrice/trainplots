@@ -27,7 +27,7 @@ def find_trains_pts(Data, init_date, start_code, end_code):
     html = urlopen(search_url1).read().decode("utf-8")
     ref_index = 0
     go = True
-    all_trains = []
+    all_trains = []; all_heads = []
     while go:
         find_text = "/service/gb-nr"
         title_index = html[ref_index:].find(find_text) + ref_index
@@ -36,9 +36,19 @@ def find_trains_pts(Data, init_date, start_code, end_code):
             end_index = html[start_index:].find("class") - 2 + start_index
             ref_index = end_index + 1
             train_index = html[start_index+1:start_index+7]
+
+            find_text = '"tid">'
+            head_index = html[ref_index:].find(find_text) + len(find_text)
+            headcode = html[ref_index + head_index:ref_index + head_index+4]
+
             all_trains.append(train_index)
+            all_heads.append(headcode)
         else:
             go = False
+
+    all_trains = [all_trains[i] for i in np.argsort(all_heads)]
+    all_heads = sorted(all_heads)
+
     #Check these trains for distance data
     found1 = False; found2 = False
     testpts = None; testdists = None; goodcode = None
@@ -50,6 +60,8 @@ def find_trains_pts(Data, init_date, start_code, end_code):
                 found1 = True
             if testdists is not None:
                 found2 = True
+            print(test_url, found1, found2)
+
             goodcode = code
     del all_trains
     del html
