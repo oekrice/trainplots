@@ -255,7 +255,7 @@ def run():
         
     Data.plot_date = st.date_input("Date to plot", value ="today", min_value = uk_tz.localize(datetime.datetime.today()) - datetime.timedelta(days = 7), max_value = uk_tz.localize(datetime.datetime.today()), on_change = reset_trains)
     Data.plot_date = datetime.datetime.combine(Data.plot_date, datetime.datetime.min.time())
-    Data.plot_yesterday =  uk_tz.localize(datetime.datetime.today()) - datetime.timedelta(days = 1)
+    Data.plot_yesterday =  uk_tz.localize(Data.plot_date) - datetime.timedelta(days = 1)
 
     if st.button("Find all trains on this route on this day", disabled = st.session_state.all_trains != None):
         st.write("Finding all trains...")

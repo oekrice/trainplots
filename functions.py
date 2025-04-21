@@ -29,7 +29,6 @@ def find_trains_pts(Data, init_date, start_code, end_code):
     go = True
     all_trains = []
     while go:
-    #print(html)
         find_text = "/service/gb-nr"
         title_index = html[ref_index:].find(find_text) + ref_index
         if title_index - ref_index >= 0:
@@ -76,7 +75,6 @@ def find_line_info(url, init = False, unspecified = False):
     chains = []
     go = True
     while go:
-    #print(html)
         find_text = "/search/detailed"
         title_index = html[ref_index:].find("/search/detailed/gb-nr") + ref_index
         if title_index - ref_index >= 0:
@@ -124,7 +122,15 @@ def find_line_info(url, init = False, unspecified = False):
 
 def train_info(Data, train_code, update = False):
     #This function finds out everything about a train on a given date, using advanced scraping from RTT
-    url = 'https://www.realtimetrains.co.uk/service/gb-nr:' + train_code + '/' + str(Data.plot_date)[:10]  + '/detailed'
+    #Now need to determine the url using the encoded date information
+
+    if train_code[-2:] == '_p':
+        #This runs on the previous day
+        url = 'https://www.realtimetrains.co.uk/service/gb-nr:' + train_code[:-2] + '/' + str(Data.plot_yesterday)[:10]  + '/detailed'
+        yesterday_flag = True
+    else:
+        url = 'https://www.realtimetrains.co.uk/service/gb-nr:' + train_code + '/' + str(Data.plot_date)[:10]  + '/detailed'
+        yesterday_flag = False
     failcount = 0
     go = True
     while go:
@@ -134,14 +140,8 @@ def train_info(Data, train_code, update = False):
             html = html_bytes.decode("utf-8")
             go = False
         except:   #Try to go for the day before? Trains might have happened before midnight
-            try:
-                url = 'https://www.realtimetrains.co.uk/service/gb-nr:' + train_code + '/' + str(Data.plot_yesterday)[:10]  + '/detailed'
-                page = urlopen(url)
-                html_bytes = page.read()    
-                html = html_bytes.decode("utf-8")
-                go = False
-            except:
-                return [],[],[],[]
+            #print('URL FAILED', url)
+            return [],[],[],[]
         
     find_text = "train-operator"
     title_index = html.find(find_text) + len(find_text) + 2
@@ -182,17 +182,15 @@ def train_info(Data, train_code, update = False):
             end_index = html[start_index:].find("class") - 2 + start_index
             end_search_index = html[start_index + 1:].find(find_text) - 1 + start_index
             call = html[start_index+7:end_index-16]
-            if call in Data.linepts:
 
+            if call in Data.linepts:
                 dep_index = html[start_index:end_search_index].find('dep">') + start_index
                 dep = html[dep_index+5:dep_index+9]
                 if dep == '</di' and not started:
                     dep = -2
                     started = True
-                #print(dep)
                 try:
-                    dep = int(dep)
-                    
+                    dep = int(dep) 
                 except:
                     dep = -1
                 
@@ -204,10 +202,8 @@ def train_info(Data, train_code, update = False):
                 arr = html[arr_index+5:arr_index+9]
                 if arr == '</di':
                     arr = -2
-
                 try:
                     arr = int(arr)
-                    
                 except:
                     arr = -1
                        
@@ -227,6 +223,12 @@ def train_info(Data, train_code, update = False):
                         go = False
 
                 if go:
+                    #Put in checks here for the different days
+                    if yesterday_flag:
+                        if dep > 1200:  #Train started on the previous day. Don't plot anything which is before midnight?
+                            dep = dep - 2400
+                        if arr > 1200:
+                            arr = arr - 2400
                     calls[-1].append([call, arr, dep])
                     on_line = True
                     off_line_time = 0
@@ -345,6 +347,12 @@ def train_info(Data, train_code, update = False):
                     add = False
                     
                 if go and add:
+                    if yesterday_flag:
+                        if dep_act > 1200:  #Train started on the previous day. Don't plot anything which is before midnight?
+                            dep_act = dep_act - 2400
+                        if arr_act > 1200:
+                            arr_act = arr_act - 2400
+
                     calls_rt[-1].append([call, arr_act, dep_act])
                         
                     on_line = True
@@ -590,11 +598,23 @@ def find_all_trains(Data):
                 end_index = html[start_index:].find("class") - 2 + start_index
                 ref_index = end_index + 1
                 train_index = html[start_index+1:start_index+7]
+                train_start_date = str(html[start_index+8:start_index+18])
+
+                if train_start_date[-1] == '/':   #This train code is only 5 charachters for some reason. Change things as appropriate
+                    train_index = html[start_index+1:start_index+6]
+                    train_start_date = str(html[start_index+7:start_index+17])
+
+                if train_start_date != str(Data.plot_date)[:10]:
+                    train_index = train_index + '_p'  #Indicates this train is registered from the previous day.
+
+                #Obtain date this train ran as well (and append as a suffix for obtaining line info)
+
                 if train_index not in all_trains:
                     all_trains.append(train_index)
                     traincount.append(1)
                 else:
                     traincount[all_trains.index(train_index)] += 1
+                
                 #print(html[start_index+1:start_index+7])
             else:
                 go = False
@@ -604,7 +624,10 @@ def find_all_trains(Data):
     all_trains = []
     traincount = []   #number of stations in the range that the train calls at
     threads = []
+
     for k in range(len(st.session_state.linepts)):
+        #trains_at_point(st.session_state.linepts[k], all_trains, traincount)
+
         x = threading.Thread(target=trains_at_point, args=(st.session_state.linepts[k], all_trains, traincount), daemon = False)
         threads.append(x)
         x.start()

@@ -440,12 +440,15 @@ def plot_trains(Paras, counter = -1, save = False):
                 
                 if (up and Paras.plot_up) or (not up and Paras.plot_down):
                 #if allops_rt[k] == 'ZZ' and allcalls_rt[k][0][2] > 300 and allcalls_rt[k][0][2] < 330:
-                    if Paras.write_headcode:
+                    if Paras.write_headcode and dot_time > Paras.xmin + 15:
                         headcode_text = st.session_state.allheads_rt[k]
                     else:
                         headcode_text = ''
-                    if Paras.write_traincode:
-                        traincode_text = st.session_state.allcodes_rt[k]
+                    if Paras.write_traincode and dot_time > Paras.xmin + 15:
+                        if st.session_state.allcodes_rt[k][-2:] == '_p':
+                            traincode_text = st.session_state.allcodes_rt[k][:-2]
+                        else:
+                            traincode_text = st.session_state.allcodes_rt[k]
                     else:
                         traincode_text = ''
 
